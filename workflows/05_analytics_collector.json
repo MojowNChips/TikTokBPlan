@@ -1,0 +1,194 @@
+{
+  "name": "Analytics Collector",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "cronExpression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Hourly Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
+        "range": "Analytics!A2:H",
+        "options": {
+          "majorDimension": "ROWS"
+        }
+      },
+      "id": "read-analytics",
+      "name": "Read Analytics Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [500, 300],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get posts from last 7 days that need updating\nconst rows = $json.values || [];\nconst cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);\n\nconst toUpdate = [];\nfor (let i = 0; i < rows.length; i++) {\n  const row = rows[i];\n  const postedDate = new Date(row[0]);\n  const publishId = row[5];\n  const status = row[6];\n  \n  if (postedDate >= cutoff && status === 'posted' && publishId) {\n    toUpdate.push({ rowIndex: i + 2, publishId });\n  }\n}\n\nreturn toUpdate;"
+      },
+      "id": "filter-recent",
+      "name": "Filter Recent Posts",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://open.tiktokapis.com/v2/video/query/",
+        "method": "POST",
+        "options": {},
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.TIKTOK_ACCESS_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}",
+        "jsonParameters": true,
+        "bodyParametersJson": "{\n  \"filters\": {\n    \"video_ids\": [\"{{$json.publishId}}\"]\n  }\n}"
+      },
+      "id": "tiktok-query",
+      "name": "Query TikTok Video Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse TikTok response and prepare sheet update\nconst data = $json.data?.videos?.[0];\nif (!data) return { error: 'No data' };\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: `Analytics!F${$json.rowIndex}:H${$json.rowIndex}`,\n  values: [[\n    data.publish_id,\n    'updated',\n    data.statistics?.view_count || 0,\n    data.statistics?.like_count || 0,\n    data.statistics?.comment_count || 0,\n    data.statistics?.share_count || 0,\n    data.statistics?.collect_count || 0\n  ]]\n};"
+      },
+      "id": "parse-stats",
+      "name": "Parse Statistics",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetId": "={{$json.sheetId}}",
+        "range": "={{$json.range}}",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "id": "update-analytics",
+      "name": "Update Analytics Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1500, 300],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check for viral clips (views > 10k in first hour, or > 100k total)\nconst data = $json.data?.videos?.[0];\nif (!data) return null;\n\nconst views = data.statistics?.view_count || 0;\nconst postedDate = new Date($json.postedDate);\nconst hoursSince = (Date.now() - postedDate.getTime()) / (1000 * 60 * 60);\n\nconst isViral = (hoursSince <= 1 && views >= 10000) || views >= 100000;\n\nif (isViral) {\n  return {\n    content: `🚨 **VIRAL ALERT**\\n**Clip:** ${data.video_id}\\n**Views:** ${views.toLocaleString()}\\n**Hours since post:** ${hoursSince.toFixed(1)}\\n**Likes:** ${data.statistics?.like_count || 0}\\n**Shares:** ${data.statistics?.share_count || 0}\\n\\nConsider boosting similar content!`,\n    username: 'Analytics Bot'\n  };\n}\nreturn null;"
+      },
+      "id": "check-viral",
+      "name": "Check Viral Threshold",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.DISCORD_WEBHOOK_URL}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json}}"
+      },
+      "id": "send-viral-alert",
+      "name": "Send Viral Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1500, 500]
+    }
+  ],
+  "connections": {
+    "Hourly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Analytics Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Analytics Sheet": {
+      "main": [
+        [
+          {
+            "node": "Filter Recent Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Recent Posts": {
+      "main": [
+        [
+          {
+            "node": "Query TikTok Video Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query TikTok Video Stats": {
+      "main": [
+        [
+          {
+            "node": "Parse Statistics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Viral Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Statistics": {
+      "main": [
+        [
+          {
+            "node": "Update Analytics Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Viral Threshold": {
+      "main": [
+        [
+          {
+            "node": "Send Viral Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

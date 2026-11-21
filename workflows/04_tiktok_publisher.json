@@ -1,0 +1,341 @@
+{
+  "name": "TikTok Publisher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "cronExpression": "0 11,15,19,22 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Post Schedule (11am, 3pm, 7pm, 10pm EST)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get next clip from Ready_Clips sheet\n// Returns oldest unposted clip\nconst sheetId = $env.GOOGLE_SHEET_ID;\n\n// This would be a Google Sheets read - simplified for workflow\n// In practice, use Google Sheets node to read\nreturn { sheetId, range: 'Ready_Clips!A2:M' };"
+      },
+      "id": "get-next-clip",
+      "name": "Get Next Clip Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
+        "range": "Ready_Clips!A2:M",
+        "options": {
+          "majorDimension": "ROWS"
+        }
+      },
+      "id": "read-clips",
+      "name": "Read Ready Clips",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [750, 300],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Find first unposted clip (status === 'ready_to_post')\nconst rows = $json.values || [];\n\nfor (const row of rows) {\n  // Columns: A=clip_id, B=vod_id, C=streamer, D=game, E=start_time, F=end_time,\n  // G=title, H=reason, I=score, J=video_path, K=video_url, L=file_size_mb, M=status\n  if (row[12] === 'ready_to_post') {\n    return {\n      clip_id: row[0],\n      vod_id: row[1],\n      streamer: row[2],\n      game: row[3],\n      start_time: row[4],\n      end_time: row[5],\n      title: row[6],\n      reason: row[7],\n      score: row[8],\n      video_path: row[9],\n      video_url: row[10],\n      file_size_mb: row[11],\n      row_index: rows.indexOf(row) + 2 // 1-indexed + header\n    };\n  }\n}\n\nreturn { error: 'No clips ready to post' };"
+      },
+      "id": "find-next-clip",
+      "name": "Find Next Unposted Clip",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate caption with hashtags\nconst { streamer, game, title, reason, clip_id } = $json;\n\nconst pillarHashtags = {\n  'Insane Plays': '#clutch #outplay #insane #gamingclips #proplay',\n  'Funny Moments': '#funny #fail #ragemoment #gamingfunny #lol',\n  'Reactions': '#reaction #streamer #gamingreaction #priceless',\n  'Tips': '#gamingtips #howto #protip #improve #guide'\n};\n\n// Determine pillar from reason/title\nlet pillar = 'Insane Plays';\nconst text = (title + ' ' + reason).toLowerCase();\nif (text.includes('funny') || text.includes('fail') || text.includes('lol')) pillar = 'Funny Moments';\nelse if (text.includes('react') || text.includes('wtf') || text.includes('omg')) pillar = 'Reactions';\nelse if (text.includes('tip') || text.includes('how') || text.includes('guide')) pillar = 'Tips';\n\nconst hashtags = pillarHashtags[pillar] || pillarHashtags['Insane Plays'];\n\nconst caption = `${title}\n\n${reason}\n\nStreamer: @${streamer}\nGame: ${game}\n\n${hashtags} #${game.replace(/\\s+/g, '')} #${streamer} #fyp #gaming`;\n\nreturn { ...$json, caption, pillar };"
+      },
+      "id": "generate-caption",
+      "name": "Generate Caption & Hashtags",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://open.tiktokapis.com/v2/post/publish/video/init/",
+        "method": "POST",
+        "options": {},
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.TIKTOK_ACCESS_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}",
+        "jsonParameters": true,
+        "bodyParametersJson": "{\n  \"post_info\": {\n    \"title\": \"{{$json.caption}}\",\n    \"privacy_level\": \"PUBLIC\",\n    \"disable_duet\": false,\n    \"disable_stitch\": false,\n    \"disable_comment\": false\n  },\n  \"source_info\": {\n    \"source\": \"FILE_UPLOAD\",\n    \"video_size\": \"{{$json.file_size_mb * 1024 * 1024}}\",\n    \"chunk_size\": 10485760,\n    \"total_chunk_count\": 1\n  }\n}"
+      },
+      "id": "tiktok-init",
+      "name": "TikTok Init Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Upload video file to TikTok upload URL\nconst { upload_url, video_path } = $json;\n\n// This requires multipart upload - simplified\n// In practice, use the upload_url from init response\nconst fs = require('fs');\nconst videoBuffer = fs.readFileSync(video_path);\n\nreturn {\n  ...$json,\n  video_buffer: videoBuffer\n};"
+      },
+      "id": "prepare-upload",
+      "name": "Prepare Video Upload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.upload_url}}",
+        "method": "PUT",
+        "options": {},
+        "headerParametersJson": "{\n  \"Content-Type\": \"video/mp4\",\n  \"Content-Range\": \"bytes 0-{{$json.file_size_mb * 1024 * 1024 - 1}}/{{$json.file_size_mb * 1024 * 1024}}\"\n}",
+        "binaryPropertyName": "video_buffer"
+      },
+      "id": "tiktok-upload",
+      "name": "Upload Video to TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://open.tiktokapis.com/v2/post/publish/status/fetch/",
+        "method": "POST",
+        "options": {},
+        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.TIKTOK_ACCESS_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}",
+        "jsonParameters": true,
+        "bodyParametersJson": "{\n  \"publish_id\": \"{{$json.publish_id}}\"\n}"
+      },
+      "id": "tiktok-status",
+      "name": "Check Publish Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Update sheet: mark as posted\nconst { row_index, clip_id, publish_id } = $json;\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: `Ready_Clips!M${row_index}:N${row_index}`,\n  values: [[\n    'posted',\n    new Date().toISOString(),\n    publish_id\n  ]]\n};"
+      },
+      "id": "update-sheet",
+      "name": "Mark Clip as Posted",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetId": "={{$json.sheetId}}",
+        "range": "={{$json.range}}",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "id": "write-posted",
+      "name": "Write Posted Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [2750, 300],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Log to analytics sheet\nconst { clip_id, streamer, game, pillar, caption, publish_id } = $json;\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: 'Analytics!A:H',\n  values: [[\n    new Date().toISOString(),\n    clip_id,\n    streamer,\n    game,\n    pillar,\n    publish_id,\n    'posted',\n    0 // initial views\n  ]]\n};"
+      },
+      "id": "log-analytics",
+      "name": "Log to Analytics",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2500, 500]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$json.sheetId}}",
+        "range": "={{$json.range}}",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "id": "write-analytics",
+      "name": "Write Analytics Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [2750, 500],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Notify Discord\nconst { clip_id, streamer, game, pillar, caption, video_url } = $json;\n\nreturn {\n  content: `✅ **Posted to TikTok**\\n**Clip:** ${clip_id}\\n**Streamer:** ${streamer}\\n**Game:** ${game}\\n**Pillar:** ${pillar}\\n**Caption:** ${caption.substring(0, 100)}...\\n**Link:** ${video_url}`,\n  username: 'Clip Bot'\n};"
+      },
+      "id": "format-posted-discord",
+      "name": "Format Posted Notification",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [2500, 700]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.DISCORD_WEBHOOK_URL}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json}}"
+      },
+      "id": "send-posted-discord",
+      "name": "Send Posted Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2750, 700]
+    }
+  ],
+  "connections": {
+    "Post Schedule (11am, 3pm, 7pm, 10pm EST)": {
+      "main": [
+        [
+          {
+            "node": "Read Ready Clips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Ready Clips": {
+      "main": [
+        [
+          {
+            "node": "Find Next Unposted Clip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Next Unposted Clip": {
+      "main": [
+        [
+          {
+            "node": "Generate Caption & Hashtags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Caption & Hashtags": {
+      "main": [
+        [
+          {
+            "node": "TikTok Init Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TikTok Init Upload": {
+      "main": [
+        [
+          {
+            "node": "Prepare Video Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Video Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload Video to TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video to TikTok": {
+      "main": [
+        [
+          {
+            "node": "Check Publish Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Publish Status": {
+      "main": [
+        [
+          {
+            "node": "Mark Clip as Posted",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to Analytics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Posted Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Clip as Posted": {
+      "main": [
+        [
+          {
+            "node": "Write Posted Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Analytics": {
+      "main": [
+        [
+          {
+            "node": "Write Analytics Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Posted Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Posted Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

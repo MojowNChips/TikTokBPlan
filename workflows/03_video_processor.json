@@ -1,0 +1,235 @@
+{
+  "name": "Video Processor (FFmpeg + Captions)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "process-clip",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Process Clip Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "process-clip"
+    },
+    {
+      "parameters": {
+        "functionCode": "const clip = $json;\n\nreturn {\n  vod_url: clip.vod_url || `https://twitch.tv/videos/${clip.vod_id}`,\n  start_time: clip.start_time,\n  end_time: clip.end_time,\n  duration: clip.end_time - clip.start_time,\n  streamer: clip.streamer,\n  game: clip.game,\n  clip_id: clip.clip_id || `clip_${clip.vod_id}_${clip.start_time}`,\n  title: clip.title,\n  reason: clip.reason\n};"
+      },
+      "id": "prepare-clip",
+      "name": "Prepare Clip Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate FFmpeg command for clip extraction + vertical crop + captions\nconst { vod_url, start_time, end_time, duration, clip_id, streamer, title } = $json;\n\nconst outputPath = `/output/${clip_id}.mp4`;\nconst captionPath = `/temp/${clip_id}_captions.srt`;\nconst watermarkPath = `/scripts/assets/watermark.png`;\n\n// Step 1: Extract clip with vertical crop (9:16)\n// Using yt-dlp to download segment + ffmpeg to process\nconst cmd = `\n  yt-dlp -f \"bestvideo[height<=1080]+bestaudio/best\" \\\n    --download-sections \"*${start_time}-${end_time}\" \\\n    -o \"/temp/${clip_id}_raw.%(ext)s\" \\\n    \"${vod_url}\" &&\n  \n  ffmpeg -y -i \"/temp/${clip_id}_raw.mp4\" \\\n    -vf \"crop=ih*9/16:ih:(ow-iw)/2:0,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black\" \\\n    -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" \\\n    -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k \\\n    \"/temp/${clip_id}_cropped.mp4\"\n`;\n\nreturn { ...$json, cmd, outputPath, captionPath, croppedPath: `/temp/${clip_id}_cropped.mp4` };"
+      },
+      "id": "gen-ffmpeg-extract",
+      "name": "Generate Extract Command",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "command": "={{$json.cmd}}",
+        "options": {
+          "cwd": "/temp"
+        }
+      },
+      "id": "run-extract",
+      "name": "Extract & Crop Clip",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate captions using Whisper.cpp\nconst { croppedPath, clip_id, captionPath } = $json;\n\nconst cmd = `whisper-cli -m /models/ggml-base.en.bin -f \"${croppedPath}\" -osrt -of \"${captionPath.replace('.srt', '')}\"`;\n\nreturn { ...$json, captionCmd: cmd };"
+      },
+      "id": "gen-captions",
+      "name": "Generate Caption Command",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [750, 500]
+    },
+    {
+      "parameters": {
+        "command": "={{$json.captionCmd}}",
+        "options": {
+          "cwd": "/temp"
+        }
+      },
+      "id": "run-whisper",
+      "name": "Run Whisper for Captions",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1000, 500]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Final render: burn captions + watermark + branding\nconst { croppedPath, captionPath, clip_id, streamer, title, outputPath } = $json;\n\nconst captionStyle = \"Fontsize=24,Fontcolor=white,Outline=2,OutlineColour=black,Alignment=2,MarginV=150\";\n\nconst cmd = `ffmpeg -y -i \"${croppedPath}\" \\\n  -vf \"subtitles='${captionPath}':force_style='${captionStyle}', \\\n    drawtext=text='@${streamer}':fontsize=36:fontcolor=white:x=w-tw-20:y=20:box=1:boxcolor=black@0.5:boxborderw=5, \\\n    drawtext=text='${title.substring(0, 50)}':fontsize=28:fontcolor=white:x=(w-tw)/2:y=h-100:box=1:boxcolor=black@0.5:boxborderw=5\" \\\n  -c:v libx264 -preset fast -crf 22 -c:a aac -b:a 128k \\\n  -movflags +faststart \\\n  \"${outputPath}\"`;\n\nreturn { ...$json, finalCmd: cmd };"
+      },
+      "id": "gen-final-render",
+      "name": "Generate Final Render Command",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "command": "={{$json.finalCmd}}",
+        "options": {
+          "cwd": "/temp"
+        }
+      },
+      "id": "run-final-render",
+      "name": "Final Render (Captions + Watermark)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Upload to R2 / S3 and return public URL\nconst { outputPath, clip_id } = $json;\n\nconst fs = require('fs');\nif (!fs.existsSync(outputPath)) {\n  throw new Error('Output file not found');\n}\n\nconst stats = fs.statSync(outputPath);\nconst fileSizeMB = (stats.size / 1024 / 1024).toFixed(2);\n\n// In production, use AWS SDK or rclone to upload\n// For now, return local path\nreturn {\n  ...$json,\n  video_path: outputPath,\n  video_url: `${$env.R2_PUBLIC_URL}/${clip_id}.mp4`,\n  file_size_mb: fileSizeMB,\n  status: 'ready_to_post'\n};"
+      },
+      "id": "verify-upload",
+      "name": "Verify & Prepare for Upload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
+        "range": "Ready_Clips!A:M",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "id": "log-ready",
+      "name": "Log to Ready Clips Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [2000, 300],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    }
+  ],
+  "connections": {
+    "Process Clip Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Clip Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Clip Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Extract Command",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Caption Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Extract Command": {
+      "main": [
+        [
+          {
+            "node": "Extract & Crop Clip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Crop Clip": {
+      "main": [
+        [
+          {
+            "node": "Run Whisper for Captions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Caption Command": {
+      "main": [
+        [
+          {
+            "node": "Run Whisper for Captions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Whisper for Captions": {
+      "main": [
+        [
+          {
+            "node": "Generate Final Render Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Final Render Command": {
+      "main": [
+        [
+          {
+            "node": "Final Render (Captions + Watermark)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Render (Captions + Watermark)": {
+      "main": [
+        [
+          {
+            "node": "Verify & Prepare for Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify & Prepare for Upload": {
+      "main": [
+        [
+          {
+            "node": "Log to Ready Clips Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "name": "Daily VOD Fetch",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "cronExpression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Daily 2AM Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const streamers = $env.STREAMER_LIST?.split(',').map(s => s.trim()) || [];\nconst games = $env.GAME_LIST?.split(',').map(g => g.trim()) || [];\n\n// Return streamer list for batch processing\nreturn streamers.map(username => ({ username, games }));"
+      },
+      "id": "prepare-streamers",
+      "name": "Prepare Streamer List",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.twitch.tv/helix/videos",
+        "method": "GET",
+        "options": {},
+        "headerParametersJson": "{\n  \"Client-ID\": \"{{$env.TWITCH_CLIENT_ID}}\",\n  \"Authorization\": \"Bearer {{$env.TWITCH_ACCESS_TOKEN}}\"\n}",
+        "queryParametersJson": "{\n  \"user_login\": \"{{$json.username}}\",\n  \"type\": \"archive\",\n  \"first\": 10,\n  \"period\": \"day\"\n}"
+      },
+      "id": "fetch-vods",
+      "name": "Fetch VODs from Twitch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const vods = $json.data || [];\nconst results = [];\n\nfor (const vod of vods) {\n  // Filter by game if specified\n  const games = $json.games || [];\n  if (games.length > 0 && !games.some(g => vod.game_name?.toLowerCase().includes(g.toLowerCase()))) {\n    continue;\n  }\n  \n  // Skip if already processed (check metadata)\n  results.push({\n    vod_id: vod.id,\n    streamer: $json.username,\n    title: vod.title,\n    game: vod.game_name,\n    duration: vod.duration,\n    url: vod.url,\n    thumbnail: vod.thumbnail_url,\n    created_at: vod.created_at,\n    view_count: vod.view_count\n  });\n}\n\nreturn results;"
+      },
+      "id": "filter-vods",
+      "name": "Filter & Format VODs",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
+        "range": "VOD_Queue!A:J",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "id": "queue-vods",
+      "name": "Queue VODs to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1250, 300],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.twitch.tv/helix/videos",
+        "method": "GET",
+        "options": {},
+        "headerParametersJson": "{\n  \"Client-ID\": \"{{$env.TWITCH_CLIENT_ID}}\",\n  \"Authorization\": \"Bearer {{$env.TWITCH_ACCESS_TOKEN}}\"\n}",
+        "queryParametersJson": "{\n  \"user_login\": \"{{$json.username}}\",\n  \"type\": \"archive\",\n  \"first\": 10,\n  \"period\": \"day\"\n}"
+      },
+      "id": "kick-fetch",
+      "name": "Fetch from Kick (if available)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [750, 500],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Daily 2AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Streamer List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Streamer List": {
+      "main": [
+        [
+          {
+            "node": "Fetch VODs from Twitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch VODs from Twitch": {
+      "main": [
+        [
+          {
+            "node": "Filter & Format VODs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter & Format VODs": {
+      "main": [
+        [
+          {
+            "node": "Queue VODs to Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

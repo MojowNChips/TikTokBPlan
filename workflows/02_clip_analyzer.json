@@ -1,0 +1,180 @@
+{
+  "name": "Clip Analyzer & Scorer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analyze-vod",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Analyze VOD Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "analyze-vod"
+    },
+    {
+      "parameters": {
+        "functionCode": "const vod = $json;\n\n// Download VOD metadata and chat\n// For now, we'll use the VOD URL to get chat logs via Twitch API\n// Note: Twitch chat logs require special access, using public API limits\n\nreturn {\n  vod_id: vod.vod_id,\n  streamer: vod.streamer,\n  title: vod.title,\n  game: vod.game,\n  duration: vod.duration,\n  url: vod.url,\n  created_at: vod.created_at,\n  view_count: vod.view_count\n};"
+      },
+      "id": "prepare-vod",
+      "name": "Prepare VOD Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// This runs a Python script to analyze the VOD\n// The script uses yt-dlp to download, whisper.cpp to transcribe,\n// and custom logic to score moments\n\nconst vodId = $json.vod_id;\nconst streamer = $json.streamer;\n\n// Return command to execute\nreturn {\n  command: `python3 /scripts/analyze_vod.py \"${vodId}\" \"${streamer}\"`,\n  vod_id: vodId,\n  streamer: streamer\n};"
+      },
+      "id": "prepare-analysis",
+      "name": "Prepare Analysis Command",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "command": "={{$json.command}}",
+        "options": {
+          "cwd": "/scripts"
+        }
+      },
+      "id": "run-analyzer",
+      "name": "Run VOD Analyzer Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse analyzer output\nconst output = $json.stdout;\nconst clips = JSON.parse(output);\n\n// Filter by score threshold\nconst THRESHOLD = 65;\nconst approved = clips.filter(c => c.score >= THRESHOLD);\n\nreturn approved.map(clip => ({\n  ...clip,\n  vod_id: $json.vod_id,\n  streamer: $json.streamer,\n  status: 'pending_review'\n}));"
+      },
+      "id": "parse-results",
+      "name": "Parse & Filter Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
+        "range": "Clip_Queue!A:L",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        }
+      },
+      "id": "queue-clips",
+      "name": "Queue Approved Clips",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1500, 300],
+      "credentials": {
+        "googleApi": "googleSheetsApi"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Notify for manual review if needed\nconst clips = $json;\nif (clips.length === 0) {\n  return [{ message: 'No clips above threshold', vod_id: $json[0]?.vod_id }];\n}\n\nreturn clips.map(c => ({\n  content: `🎬 **New Clip Ready**\\n**Streamer:** ${c.streamer}\\n**Game:** ${c.game}\\n**Score:** ${c.score}/100\\n**Moment:** ${c.start_time}s - ${c.end_time}s\\n**Reason:** ${c.reason}\\n\\nReview: ${c.review_url}`,\n  username: 'Clip Bot'\n}));"
+      },
+      "id": "format-discord",
+      "name": "Format Discord Notification",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1250, 500]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.DISCORD_WEBHOOK_URL}}",
+        "method": "POST",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={{$json}}"
+      },
+      "id": "send-discord",
+      "name": "Send to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1500, 500]
+    }
+  ],
+  "connections": {
+    "Analyze VOD Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare VOD Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare VOD Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Analysis Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Analysis Command": {
+      "main": [
+        [
+          {
+            "node": "Run VOD Analyzer Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run VOD Analyzer Script": {
+      "main": [
+        [
+          {
+            "node": "Parse & Filter Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Filter Results": {
+      "main": [
+        [
+          {
+            "node": "Queue Approved Clips",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Discord Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Discord Notification": {
+      "main": [
+        [
+          {
+            "node": "Send to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

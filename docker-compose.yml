@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: tiktok-clips-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Basic config
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+
+      # Database (SQLite for simplicity, use Postgres for production)
+      - DB_TYPE=sqlite
+      - DB_SQLITE_DATABASE=/data/n8n.db
+
+      # Security
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme123}
+
+      # Execution
+      - EXECUTIONS_MODE=regular
+      - N8N_PAYLOAD_SIZE_MAX=100
+
+      # Timezone
+      - GENERIC_TIMEZONE=America/New_York
+      - TZ=America/New_York
+
+      # Custom nodes path (for any community nodes)
+      - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom
+
+    volumes:
+      - n8n_data:/data
+      - ./custom-nodes:/home/node/.n8n/custom
+      - ./workflows:/data/workflows
+      - ./scripts:/scripts
+      - ./output:/output
+      - ./temp:/temp
+
+    # Add FFmpeg and Whisper to n8n container
+    user: root
+    entrypoint: >
+      /bin/sh -c "
+        apk add --no-cache ffmpeg python3 py3-pip build-base &&
+        pip3 install --break-system-packages whisper-cpp-python 2>/dev/null || pip3 install --break-system-packages openai-whisper &&
+        exec /docker-entrypoint.sh
+      "
+
+  # Optional: Separate Whisper service for heavier loads
+  whisper:
+    image: ghcr.io/ggerganov/whisper.cpp:main
+    container_name: tiktok-clips-whisper
+    restart: unless-stopped
+    volumes:
+      - ./models:/models
+      - ./temp:/temp
+      - ./output:/output
+    command: ["--help"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Optional: Redis for queue management
+  redis:
+    image: redis:7-alpine
+    container_name: tiktok-clips-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Monitoring
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: tiktok-clips-uptime
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_data:/app/data
+
+volumes:
+  n8n_data:
+  redis_data:
+  uptime_data:
