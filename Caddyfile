@@ -31,7 +31,13 @@ ${YOUR_DOMAIN} {
 
     # n8n automation UI — catch-all LAST
     handle / {
-        reverse_proxy n8n:5678
+        reverse_proxy n8n:5678 {
+            header_up Host {upstream_hostport}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Port {server_port}
+        }
     }
 
     # Health check
