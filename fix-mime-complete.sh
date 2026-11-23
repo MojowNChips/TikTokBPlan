@@ -47,11 +47,6 @@ cat > Caddyfile << 'CFEOF'
 
 claudinesclip.online {
 
-    # Enable proper MIME type detection
-    header_server {
-        replace "Caddy"
-    }
-
     # TikTok legal docs — specific routes FIRST
     handle_path /privacy {
         reverse_proxy docs:80
