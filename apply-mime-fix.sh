@@ -51,7 +51,6 @@ echo "[3/5] Creating fixed Caddyfile..."
 cat > Caddyfile << 'CFEOF'
 {
     email admin@claudinesclip.online
-    encode gzip
 }
 
 claudinesclip.online {

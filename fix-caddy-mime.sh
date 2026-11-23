@@ -26,7 +26,6 @@ echo "=== Fixing Caddyfile ==="
 cat > Caddyfile << 'CFEOF'
 {
     email admin@claudinesclip.online
-    encode gzip
 }
 
 claudinesclip.online {

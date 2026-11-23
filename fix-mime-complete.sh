@@ -43,7 +43,6 @@ echo "[3/7] Creating fully rendered Caddyfile..."
 cat > Caddyfile << 'CFEOF'
 {
     email admin@claudinesclip.online
-    encode gzip
 }
 
 claudinesclip.online {
