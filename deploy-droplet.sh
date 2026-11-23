@@ -4,22 +4,25 @@
 #
 # Run this ON your droplet as root:
 #   ssh root@<droplet-ip>
-#   curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/deploy-droplet.sh | sudo bash
+#   export DOMAIN=your-domain.com
+#   export CADDY_EMAIL=your-real-email@example.com
+#   export N8N_PASSWORD=<secure-password>
+#   bash /opt/tiktok-clips/deploy-droplet.sh
 #
-# Or copy this file to the droplet and run:  bash deploy-droplet.sh
+# BEFORE running, copy project files to the droplet from your LOCAL machine:
+#   scp -r "D:\Tiktok Buisness plan\*" root@<droplet-ip>:/opt/tiktok-clips/
 # ==============================================================================
 set -euo pipefail
 
 # --- Configuration ------------------------------------------------------------
-# Override these via environment variables before running:
-DOMAIN="${DOMAIN:-your-domain.com}"       # <-- CHANGE ME: your domain pointing at this droplet
-CADDY_EMAIL="${CADDY_EMAIL:-admin@your-domain.com}"   # for Let's Encrypt
-N8N_PASSWORD="${N8N_PASSWORD:-changeme123}"           # <-- CHANGE ME: secure n8n login
+DOMAIN="${DOMAIN:-}"
+CADDY_EMAIL="${CADDY_EMAIL:-}"
+N8N_PASSWORD="${N8N_PASSWORD:-changeme123}"
 
 echo "========================================================"
 echo " TikTok Clips Automation — Droplet Setup"
-echo " Domain:    $DOMAIN"
-echo " Email:     $CADDY_EMAIL"
+echo " Domain:    ${DOMAIN:-<not set>}"
+echo " Email:     ${CADDY_EMAIL:-<not set>}"
 echo "========================================================"
 
 # --- 0. Sanity checks --------------------------------------------------------
@@ -28,14 +31,20 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-if [ "$DOMAIN" = "your-domain.com" ]; then
+if [ -z "$DOMAIN" ]; then
   echo "ERROR: Set the DOMAIN environment variable before running."
   echo "Example: export DOMAIN=mydomain.com && bash $0"
   exit 1
 fi
 
+if [ -z "$CADDY_EMAIL" ]; then
+  echo "ERROR: Set the CADDY_EMAIL environment variable (required for Let's Encrypt)."
+  echo "Example: export CADDY_EMAIL=admin@mydomain.com && bash $0"
+  exit 1
+fi
+
 # --- 1. System packages ------------------------------------------------------
-echo "[1/7] Updating system and installing Docker..."
+echo "[1/8] Updating system and installing Docker..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y
@@ -44,27 +53,33 @@ apt-get upgrade -y
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
-apt-get install -y docker-compose-plugin imagemagick wget ca-certificates
+apt-get install -y docker-compose-plugin imagemagick wget ca-certificates dnsutils
 
-# --- 2. Project directory ----------------------------------------------------
+# --- 2. Firewall -------------------------------------------------------------
+echo "[2/8] Configuring firewall (ufw)..."
+apt-get install -y ufw
+ufw allow 22/tcp   || true
+ufw allow 80/tcp   || true
+ufw allow 443/tcp  || true
+ufw --force enable
+
+echo "   NOTE: Also add inbound rules for TCP 22/80/443 in DigitalOcean control panel"
+echo "   → Networking → Firewalls → [your firewall] → Add rules"
+
+# --- 3. Project directory ----------------------------------------------------
 PROJECT_DIR="/opt/tiktok-clips"
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
-echo "[2/7] Copying project files from local machine..."
-echo "   Run this on your LOCAL machine (not in this SSH session):"
-echo "     scp -r \"D:\\Tiktok Buisness plan\"/* root@$(hostname -I | awk '{print $1}'):/opt/tiktok-clips/"
-echo "   Then re-run this script."
-echo ""
-
-# If files already exist (e.g. re-run), skip the scp reminder below but continue.
 if [ ! -f "$PROJECT_DIR/docker-compose.yml" ]; then
-  echo "Project files not found yet. Copy them, then re-run."
+  echo "ERROR: Project files not found in $PROJECT_DIR"
+  echo "   Copy them from your local machine first:"
+  echo "     scp -r \"D:\\Tiktok Buisness plan\\*\" root@$(hostname -I | awk '{print $1}'):/opt/tiktok-clips/"
   exit 1
 fi
 
-# --- 3. Environment file -----------------------------------------------------
-echo "[3/7] Writing .env ..."
+# --- 4. Environment file -----------------------------------------------------
+echo "[3/8] Writing .env ..."
 cat > .env <<EOF
 # n8n
 N8N_PASSWORD=${N8N_PASSWORD}
@@ -110,29 +125,51 @@ STREAMER_LIST=streamer1,streamer2,streamer3
 GAME_LIST=Valorant,League of Legends,Counter-Strike 2
 EOF
 
-# --- 4. Whisper model --------------------------------------------------------
-echo "[4/7] Downloading Whisper model..."
+# --- 5. Whisper model --------------------------------------------------------
+echo "[4/8] Downloading Whisper model..."
 mkdir -p models
 wget -q -P models https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin || \
   echo "WARNING: Whisper model download failed (check network)."
 
-# --- 5. Watermark ------------------------------------------------------------
-echo "[5/7] Converting watermark SVG to PNG..."
+# --- 6. Watermark ------------------------------------------------------------
+echo "[5/8] Converting watermark SVG to PNG..."
 if [ -f scripts/assets/watermark.svg ]; then
   convert scripts/assets/watermark.svg -background transparent scripts/assets/watermark.png || \
     echo "WARNING: ImageMagick convert failed."
 fi
 
-# --- 6. Caddyfile (domain + email) -------------------------------------------
-echo "[6/7] Generating Caddyfile..."
+# --- 7. DNS pre-flight check -------------------------------------------------
+echo "[6/8] Waiting for DNS to resolve $DOMAIN to this droplet..."
+DROPLET_IP=$(hostname -I | awk '{print $1}')
+RESOLVED=""
+for i in $(seq 1 30); do
+  RESOLVED=$(dig +short "$DOMAIN" | head -1)
+  if [ "$RESOLVED" = "$DROPLET_IP" ]; then
+    echo "   DNS confirmed: $DOMAIN -> $DROPLET_IP"
+    break
+  fi
+  echo "   Attempt $i/30: $DOMAIN resolves to '$RESOLVED' (expected $DROPLET_IP)... waiting 10s"
+  sleep 10
+done
+
+if [ "$RESOLVED" != "$DROPLET_IP" ]; then
+  echo "WARNING: DNS has not propagated yet. Caddy may fail to issue SSL until it does."
+  echo "   You can re-run this script after DNS resolves, or manually trigger Caddy renewal."
+fi
+
+# --- 8. Caddyfile render + Launch --------------------------------------------
+echo "[7/8] Rendering Caddyfile..."
 sed -e "s|\${YOUR_DOMAIN}|$DOMAIN|g" \
     -e "s|\${CADDY_EMAIL}|$CADDY_EMAIL|g" \
     Caddyfile > Caddyfile.rendered
 cp Caddyfile.rendered Caddyfile
 
-# --- 7. Launch ---------------------------------------------------------------
-echo "[7/7] Starting containers..."
-docker compose up -d
+echo "[8/8] Starting containers..."
+if ! docker compose up -d; then
+  echo "ERROR: docker compose up failed. Recent logs:"
+  docker compose logs --tail 50 2>/dev/null || true
+  exit 1
+fi
 
 echo ""
 echo "========================================================"
@@ -143,9 +180,14 @@ echo " 3. Restart: docker compose restart n8n"
 echo " 4. Import 5 workflows from workflows/ into n8n"
 echo " 5. Activate workflows 01 -> 05 in order"
 echo ""
-echo " TikTok review URLs (once DNS points here):"
+echo " TikTok review URLs (once DNS + SSL are live):"
 echo "   https://$DOMAIN/privacy"
 echo "   https://$DOMAIN/terms"
 echo "   https://$DOMAIN/data-usage"
 echo "   https://$DOMAIN/app-description"
+echo ""
+echo " Verify containers:"
+echo "   docker ps"
+echo "   ss -tlnp | grep -E ':80|:443'"
+echo "   docker logs tiktok-clips-caddy --tail 30"
 echo "========================================================"

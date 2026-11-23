@@ -141,11 +141,6 @@
             "node": "Generate Extract Command",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Generate Caption Command",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
@@ -165,7 +160,7 @@
       "main": [
         [
           {
-            "node": "Run Whisper for Captions",
+            "node": "Generate Caption Command",
             "type": "main",
             "index": 0
           }

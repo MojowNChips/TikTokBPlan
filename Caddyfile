@@ -1,5 +1,6 @@
 # Caddyfile — automatic HTTPS via Let's Encrypt
-# Replace ${YOUR_DOMAIN} with your actual domain before deploying.
+# Template variables ${YOUR_DOMAIN} and ${CADDY_EMAIL} are rendered by deploy-droplet.sh via sed.
+# Do NOT commit rendered values; keep as template.
 
 {
     email ${CADDY_EMAIL}
@@ -7,30 +8,30 @@
 
 ${YOUR_DOMAIN} {
 
-    # n8n automation UI
+    # TikTok legal docs (required for Developer Platform review) — specific routes FIRST
+    handle_path /privacy {
+        reverse_proxy docs:80
+    }
+
+    handle_path /terms {
+        reverse_proxy docs:80
+    }
+
+    handle_path /data-usage {
+        reverse_proxy docs:80
+    }
+
+    handle_path /app-description {
+        reverse_proxy docs:80
+    }
+
+    handle_path /logo.png {
+        reverse_proxy docs:80
+    }
+
+    # n8n automation UI — catch-all LAST
     handle / {
         reverse_proxy n8n:5678
-    }
-
-    # TikTok legal docs (required for Developer Platform review)
-    handle /privacy {
-        reverse_proxy docs:80
-    }
-
-    handle /terms {
-        reverse_proxy docs:80
-    }
-
-    handle /data-usage {
-        reverse_proxy docs:80
-    }
-
-    handle /app-description {
-        reverse_proxy docs:80
-    }
-
-    handle /logo.png {
-        reverse_proxy docs:80
     }
 
     # Health check

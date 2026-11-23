@@ -67,11 +67,15 @@ def main():
         sys.exit(1)
 
     # Read clip data from stdin or file
-    if sys.argv[1] == '-':
-        clip_data = json.load(sys.stdin)
-    else:
-        with open(sys.argv[1], 'r') as f:
-            clip_data = json.load(f)
+    try:
+        if sys.argv[1] == '-':
+            clip_data = json.load(sys.stdin)
+        else:
+            with open(sys.argv[1], 'r') as f:
+                clip_data = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError, IOError) as e:
+        print(json.dumps({"error": f"Failed to read clip data: {e}"}))
+        sys.exit(1)
 
     result = process_with_existing_tool(clip_data)
     print(json.dumps(result))

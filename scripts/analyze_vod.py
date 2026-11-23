@@ -26,7 +26,11 @@ def get_vod_metadata(vod_id: str, client_id: str, access_token: str) -> Dict:
         f"https://api.twitch.tv/helix/videos?id={vod_id}", headers=headers, timeout=30
     )
     if resp.status_code == 200:
-        data = resp.json().get("data", [])
+        try:
+            data = resp.json().get("data", [])
+        except ValueError:
+            print(f"Twitch metadata error: non-JSON response: {resp.text[:200]}", file=sys.stderr)
+            return {}
         return data[0] if data else {}
     print(f"Twitch metadata error: {resp.status_code} {resp.text}", file=sys.stderr)
     return {}
@@ -316,6 +320,12 @@ def main():
     access_token = os.getenv("TWITCH_ACCESS_TOKEN")
     model_path = os.getenv("WHISPER_MODEL", "/models/ggml-base.en.bin")
 
+    if not model_path or not os.path.exists(model_path):
+        print(
+            f"WARNING: Whisper model not found at {model_path}. Transcription will be skipped.",
+            file=sys.stderr,
+        )
+
     if not client_id or not access_token:
         print(json.dumps({"error": "Missing Twitch credentials"}))
         sys.exit(1)
@@ -327,21 +337,26 @@ def main():
     if duration == 0:
         duration = 7200  # 2 hours default fallback
 
+    segment_length = 30  # analysis window in seconds
+
     peak_viewers = metadata.get("view_count", 0)
 
-    # Download the full VOD to temp for analysis
+    # Download only the first analysis window (avoids 300s timeout on long VODs)
+    # find_best_moments will analyze from this downloaded segment.
     video_path = f"/temp/{vod_id}.mp4"
     vod_url = f"https://twitch.tv/videos/{vod_id}"
 
+    first_window_end = min(segment_length, duration)
+
     if not os.path.exists(video_path):
-        print(f"Downloading VOD {vod_id}...", file=sys.stderr)
-        if not download_vod_segment(vod_url, 0, duration, video_path):
-            print(json.dumps({"error": "Failed to download VOD"}))
+        print(f"Downloading VOD {vod_id} (first {first_window_end}s)...", file=sys.stderr)
+        if not download_vod_segment(vod_url, 0, first_window_end, video_path):
+            print(json.dumps({"error": "Failed to download VOD segment"}))
             sys.exit(1)
 
-    # Analyze
+    # Analyze from the downloaded segment
     moments = find_best_moments(
-        vod_id, streamer, video_path, duration,
+        vod_id, streamer, video_path, first_window_end,
         client_id, access_token, model_path,
     )
 

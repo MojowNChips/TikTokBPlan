@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   n8n:
     image: n8nio/n8n:latest
@@ -11,8 +9,8 @@ services:
       # Basic config
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://{env.DOMAIN}/
 
       # Database (SQLite for simplicity, use Postgres for production)
       - DB_TYPE=sqlite
@@ -103,6 +101,8 @@ services:
 
   # Public TikTok legal docs (privacy, terms, data-usage, app-description)
   # Required by TikTok Developer Platform review - must be fetchable over HTTPS
+  # NOTE: logo.png mount is commented out until you generate logo.png from logo.svg
+  # Run: cd TikTokAPI_review && convert-logo.bat  (or node svg-to-png.js)
   docs:
     image: nginx:alpine
     container_name: tiktok-clips-docs
@@ -112,7 +112,7 @@ services:
       - ./TikTokAPI_review/terms.html:/usr/share/nginx/html/terms.html:ro
       - ./TikTokAPI_review/data-usage.html:/usr/share/nginx/html/data-usage.html:ro
       - ./TikTokAPI_review/app-description.html:/usr/share/nginx/html/app-description.html:ro
-      - ./TikTokAPI_review/logo.png:/usr/share/nginx/html/logo.png:ro
+      # - ./TikTokAPI_review/logo.png:/usr/share/nginx/html/logo.png:ro  # uncomment after generating logo.png
 
 volumes:
   n8n_data:
