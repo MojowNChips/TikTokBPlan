@@ -67,14 +67,15 @@ echo "   NOTE: Also add inbound rules for TCP 22/80/443 in DigitalOcean control 
 echo "   → Networking → Firewalls → [your firewall] → Add rules"
 
 # --- 3. Project directory ----------------------------------------------------
-PROJECT_DIR="/opt/tiktok-clips"
+# Your files live at /opt/tiktok-clips/TikTokBPlan on the droplet
+PROJECT_DIR="/opt/tiktok-clips/TikTokBPlan"
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
 if [ ! -f "$PROJECT_DIR/docker-compose.yml" ]; then
   echo "ERROR: Project files not found in $PROJECT_DIR"
   echo "   Copy them from your local machine first:"
-  echo "     scp -r \"D:\\Tiktok Buisness plan\\*\" root@$(hostname -I | awk '{print $1}'):/opt/tiktok-clips/"
+  echo "     scp -r \"D:\\Tiktok Buisness plan\\*\" root@$(hostname -I | awk '{print $1}'):/opt/tiktok-clips/TikTokBPlan/"
   exit 1
 fi
 
