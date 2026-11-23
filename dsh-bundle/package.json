@@ -1,0 +1,25 @@
+{
+  "name": "@local/vps-connection-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH Bundle for VPS Connection Plugin - Plugin de connexion VPS pour DeepSeek Harness",
+  "main": "src/index.js",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg"
+  ]
+}
