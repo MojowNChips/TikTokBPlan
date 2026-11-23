@@ -163,6 +163,24 @@ echo "[7/8] Rendering Caddyfile..."
 sed -e "s|\${YOUR_DOMAIN}|$DOMAIN|g" \
     -e "s|\${CADDY_EMAIL}|$CADDY_EMAIL|g" \
     Caddyfile > Caddyfile.rendered
+
+# Fix: Remove header_down * which strips Content-Type headers
+# This was causing "MIME type error" for JS module files
+sed -i '/header_down/d' Caddyfile.rendered
+
+# Add transport http config for large buffers (using a temp file)
+if ! grep -q "transport http" Caddyfile.rendered; then
+    awk '/header_up X-Forwarded-Port {server_port}/{
+        print
+        print "            transport http {"
+        print "                read_buffer 4MB"
+        print "                write_buffer 4MB"
+        print "            }"
+        next
+    }1' Caddyfile.rendered > Caddyfile.rendered.tmp
+    mv Caddyfile.rendered.tmp Caddyfile.rendered
+fi
+
 cp Caddyfile.rendered Caddyfile
 
 echo "[8/8] Starting containers..."
