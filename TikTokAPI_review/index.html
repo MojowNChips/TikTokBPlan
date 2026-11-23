@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="n8n TikTok Content Manager - Automatisez la publication TikTok via workflows n8n">
+  <title>n8n TikTok Content Manager — Automatisation Publication TikTok</title>
+  <style>
+    :root {
+      --color-bg: #fafafa;
+      --color-surface: #ffffff;
+      --color-text: #1a1a2e;
+      --color-text-muted: #4a4a6a;
+      --color-primary: #ea5b0c;
+      --color-primary-hover: #d44e0a;
+      --color-primary-light: #fff4ed;
+      --color-border: #e0e0e0;
+      --color-success: #155724;
+      --color-success-bg: #d4edda;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --max-width: 1000px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f0f1a;
+        --color-surface: #1a1a2e;
+        --color-text: #f0f0f5;
+        --color-text-muted: #a0a0b0;
+        --color-primary: #ff7b2a;
+        --color-primary-hover: #ff954a;
+        --color-primary-light: #2a1a0a;
+        --color-border: #2a2a4a;
+        --color-success: #75b798;
+        --color-success-bg: #1a2a1f;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      line-height: 1.7;
+      color: var(--color-text);
+      background: var(--color-bg);
+    }
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 2rem 1.5rem; }
+    header { text-align: center; padding: 3rem 0 2rem; }
+    .logo-container { display: inline-flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem; }
+    .logo { width: 120px; height: 120px; border-radius: 20px; background: var(--color-primary-light); padding: 12px; box-shadow: 0 4px 20px rgba(234,91,12,0.2); }
+    h1 { font-size: 2.5rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.5rem; line-height: 1.2; }
+    .tagline { font-size: 1.25rem; color: var(--color-text-muted); max-width: 600px; margin: 0 auto; }
+    .badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.5rem; }
+    .badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+    .badge-primary { background: var(--color-primary-light); color: var(--color-primary); border: 1px solid var(--color-primary); }
+    .badge-success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid var(--color-success); }
+    .badge-outline { background: transparent; color: var(--color-text-muted); border: 1px solid var(--color-border); }
+    main { display: grid; gap: 2rem; }
+    .section { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 2rem; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .section h2 { font-size: 1.5rem; font-weight: 600; color: var(--color-text); }
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; border: none; cursor: pointer; font-size: 0.95rem; }
+    .btn-primary { background: var(--color-primary); color: white; }
+    .btn-primary:hover { background: var(--color-primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(234,91,12,0.3); }
+    .btn-secondary { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); }
+    .btn-secondary:hover { background: var(--color-bg); border-color: var(--color-primary); color: var(--color-primary); }
+    .doc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .doc-card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; transition: all 0.2s; }
+    .doc-card:hover { border-color: var(--color-primary); box-shadow: 0 4px 16px rgba(234,91,12,0.1); transform: translateY(-2px); }
+    .doc-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--color-primary-light); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--color-primary); }
+    .doc-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text); }
+    .doc-card p { font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1rem; }
+    .doc-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+    .tag { font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--color-primary-light); color: var(--color-primary); }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+    .feature { padding: 1.5rem; background: var(--color-bg); border-radius: 12px; border: 1px solid var(--color-border); }
+    .feature-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--color-primary-light); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--color-primary); }
+    .feature h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .feature p { font-size: 0.9rem; color: var(--color-text-muted); }
+    .stack-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .stack-item { background: var(--color-primary-light); color: var(--color-primary); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
+    footer { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); font-size: 0.9rem; }
+    footer a { color: var(--color-primary); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600; padding: 0.3rem 0.6rem; border-radius: 6px; }
+    .status-ready { background: var(--color-success-bg); color: var(--color-success); }
+    .status-wip { background: #fff3cd; color: #856404; }
+    @media (max-width: 600px) {
+      h1 { font-size: 2rem; }
+      .tagline { font-size: 1.1rem; }
+      .section { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-container">
+        <svg class="logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="n8nGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#EA5B0C;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#FF7B2A;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="ttGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#00F2EA;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#00D4CC;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="darkGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#1A1A2E;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#0F0F1A;stop-opacity:1" />
+            </linearGradient>
+            <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="softShadow"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/></filter>
+          </defs>
+          <g filter="url(#softShadow)">
+            <g transform="translate(140, 256)">
+              <rect x="-48" y="-48" width="96" height="96" rx="16" fill="url(#n8nGradient)" filter="url(#glow)"/>
+              <polygon points="-12,-24 24,0 -12,24" fill="#FFFFFF" opacity="0.95"/>
+              <line x1="48" y1="0" x2="112" y2="0" stroke="url(#n8nGradient)" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+              <polygon points="104,-8 120,0 104,8" fill="url(#n8nGradient)" opacity="0.6"/>
+            </g>
+            <g transform="translate(256, 256)">
+              <rect x="-56" y="-56" width="112" height="112" rx="18" fill="url(#darkGradient)" filter="url(#glow)"/>
+              <rect x="-56" y="-56" width="112" height="112" rx="18" fill="none" stroke="url(#n8nGradient)" stroke-width="2.5" opacity="0.8"/>
+              <g fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+                <circle cx="0" cy="0" r="18"/>
+                <line x1="0" y1="-30" x2="0" y2="-22"/>
+                <line x1="0" y1="22" x2="0" y2="30"/>
+                <line x1="-30" y1="0" x2="-22" y2="0"/>
+                <line x1="22" y1="0" x2="30" y2="0"/>
+                <line x1="-21" y1="-21" x2="-15.5" y2="-15.5"/>
+                <line x1="15.5" y1="15.5" x2="21" y2="21"/>
+                <line x1="-21" y1="21" x2="-15.5" y2="15.5"/>
+                <line x1="15.5" y1="-15.5" x2="21" y2="-21"/>
+              </g>
+              <line x1="56" y1="0" x2="104" y2="0" stroke="url(#ttGradient)" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+              <polygon points="96,-8 112,0 96,8" fill="url(#ttGradient)" opacity="0.7"/>
+            </g>
+            <g transform="translate(372, 256)">
+              <rect x="-48" y="-48" width="96" height="96" rx="16" fill="url(#darkGradient)" filter="url(#glow)"/>
+              <rect x="-48" y="-48" width="96" height="96" rx="16" fill="none" stroke="url(#ttGradient)" stroke-width="2.5" opacity="0.9"/>
+              <g fill="#FFFFFF" opacity="0.95">
+                <path d="M-18,-10 Q-18,-20 -8,-20 Q2,-20 2,-10 Q2,0 -8,0 Q-18,0 -18,-10 Z" transform="translate(-6, 4)"/>
+                <path d="M10,-10 Q10,-20 20,-20 Q30,-20 30,-10 Q30,0 20,0 Q10,0 10,-10 Z" transform="translate(4, 4)"/>
+                <rect x="-14" y="-10" width="4" height="36" rx="2" transform="translate(-6, 4)"/>
+                <rect x="16" y="-10" width="4" height="36" rx="2" transform="translate(4, 4)"/>
+                <polygon points="0,-4 -8,6 8,6" transform="translate(0, 22)" fill="url(#ttGradient)"/>
+                <line x1="0" y1="6" x2="0" y2="18" stroke="url(#ttGradient)" stroke-width="3" stroke-linecap="round" transform="translate(0, 22)"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <h1>n8n TikTok Content Manager</h1>
+      <p class="tagline">Automatisez la publication TikTok via workflows n8n visuels — planification, multi-comptes, file d'attente intelligente.</p>
+      <div class="badges">
+        <span class="badge badge-primary">Login Kit + Video Kit</span>
+        <span class="badge badge-success">RGPD Compliant</span>
+        <span class="badge badge-outline">Auto-hébergé</span>
+        <span class="badge badge-outline">Open Source Core</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="section" id="documents">
+        <div class="section-header">
+          <h2>📄 Documents Légaux (Requis TikTok API)</h2>
+        </div>
+        <div class="doc-grid">
+          <article class="doc-card">
+            <div class="doc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3>Politique de Confidentialité</h3>
+            <p>Traitement données personnelles, scopes TikTok justifiés, droits RGPD, durées conservation, sécurité.</p>
+            <div class="doc-tags"><span class="tag">OBLIGATOIRE</span><span class="tag">RGPD</span><span class="tag">TikTok Login Kit</span></div>
+            <a href="privacy.html" class="btn btn-primary">Lire la politique</a>
+          </article>
+          <article class="doc-card">
+            <div class="doc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3>Conditions d'Utilisation</h3>
+            <p>CGU conformes TikTok Developer Terms, licence, responsabilité, propriété intellectuelle, résiliation.</p>
+            <div class="doc-tags"><span class="tag">OBLIGATOIRE</span><span class="tag">TikTok API Terms</span><span class="tag">Juridique</span></div>
+            <a href="terms.html" class="btn btn-primary">Lire les CGU</a>
+          </article>
+          <article class="doc-card">
+            <div class="doc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3>Data Usage Description</h3>
+            <p>Description exhaustive usage données par scope, flux données, chiffrement, cycle de vie, conformité RGPD Art. 28-35.</p>
+            <div class="doc-tags"><span class="tag">OBLIGATOIRE</span><span class="tag">Video Kit</span><span class="tag">Minimisation</span></div>
+            <a href="data-usage.html" class="btn btn-primary">Lire la description</a>
+          </article>
+          <article class="doc-card">
+            <div class="doc-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <h3>Description de l'Application</h3>
+            <p>Use case, architecture, fonctionnalités, public cible, conformité API, business model, roadmap pour la revue TikTok.</p>
+            <div class="doc-tags"><span class="tag">FORMULAIRE</span><span class="tag">Use Case</span><span class="tag">Architecture</span></div>
+            <a href="app-description.html" class="btn btn-secondary">Voir la description</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="section-header"><h2>✨ Fonctionnalités Clés</h2></div>
+        <div class="features-grid">
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+            <h3>OAuth 2.0 Sécurisé</h3>
+            <p>Authorization Code Flow + PKCE, refresh token auto, révocation à la déconnexion, tokens chiffrés AES-256</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+            <h3>Upload & Publication</h3>
+            <p>Chunked upload jusqu'à 10Go, reprise sur erreur, publication programmée précise, paramètres complets (confidentialité, duos, stitch, marque)</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+            <h3>File d'Attente Intelligente</h3>
+            <p>Respect rate limits TikTok, retry exponentiel (1m, 5m, 15m, 1h), priorisation, pause/reprise, monitoring quotas 80%</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <h3>Multi-Comptes / Agences</h3>
+            <p>Isolation workspaces par compte TikTok, RBAC (owner/editor/viewer), validation client, white-label ready</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <h3>Audit & Conformité RGPD</h3>
+            <p>Journal immuable, export JSON complet, suppression compte + revoke TikTok, DPO contact, TIAA documentée</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+            <h3>Extensible n8n</h3>
+            <p>Workflows visuels, 400+ nœuds natifs, templates partageables, versioning Git, auto-hébergé = contrôle total data</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="tech-stack">
+        <div class="section-header"><h2>🛠 Stack Technique</h2></div>
+        <div class="stack-list">
+          <span class="stack-item">n8n (Self-hosted)</span>
+          <span class="stack-item">PostgreSQL / SQLite</span>
+          <span class="stack-item">S3 / MinIO / R2</span>
+          <span class="stack-item">TLS 1.3 + AES-256</span>
+          <span class="stack-item">BullMQ Queue</span>
+          <span class="stack-item">Prometheus + Grafana</span>
+          <span class="stack-item">Traefik / Nginx</span>
+          <span class="stack-item">Docker / K8s</span>
+        </div>
+      </section>
+
+      <section class="section" id="scopes">
+        <div class="section-header"><h2>🔐 Scopes TikTok Demandés (Minimisation)</h2></div>
+        <div class="doc-grid">
+          <article class="doc-card" style="border-left: 4px solid var(--color-primary);">
+            <h3><code>user.info.basic</code></h3>
+            <p>Identifiant unique (<code>open_id</code>), nom, avatar pour isolation multi-comptes et affichage dashboard.</p>
+            <span class="status status-ready">✅ Justifié</span>
+          </article>
+          <article class="doc-card" style="border-left: 4px solid var(--color-primary);">
+            <h3><code>user.info.email</code></h3>
+            <p>Notifications critiques service (échec publication, token expiré, quota API) — pas marketing.</p>
+            <span class="status status-ready">✅ Justifié</span>
+          </article>
+          <article class="doc-card" style="border-left: 4px solid #00F2EA;">
+            <h3><code>video.upload</code></h3>
+            <p>Requis par Video Kit pour chunked upload médias (reprise, gros fichiers >100Mo).</p>
+            <span class="status status-ready">✅ Requis API</span>
+          </article>
+          <article class="doc-card" style="border-left: 4px solid #00F2EA;">
+            <h3><code>video.publish</code></h3>
+            <p>Cœur de métier : publication programmée vidéos/photos sur le fil TikTok utilisateur.</p>
+            <span class="status status-ready">✅ Core Feature</span>
+          </article>
+        </div>
+        <p style="margin-top: 1rem; color: var(--color-text-muted); font-size: 0.9rem;"><strong>Scopes exclus :</strong> <code>user.info.stats</code>, <code>video.list</code>, <code>comment.*</code>, <code>live.*</code>, <code>shop.*</code> — non nécessaires pour le MVP, minimisation RGPD.</p>
+      </section>
+
+      <section class="section" id="submission">
+        <div class="section-header"><h2>🚀 Checklist Soumission TikTok</h2></div>
+        <div class="doc-grid">
+          <article class="doc-card">
+            <h3>✅ Documents prêts</h3>
+            <ul style="margin-left: 1.5rem; line-height: 2;">
+              <li>Privacy Policy (RGPD + scopes)</li>
+              <li>Terms of Service (TikTok compliant)</li>
+              <li>Data Usage Description (exhaustive)</li>
+              <li>App Description (pour formulaire)</li>
+            </ul>
+          </article>
+          <article class="doc-card">
+            <h3>🔄 Assets à créer</h3>
+            <ul style="margin-left: 1.5rem; line-height: 2;">
+              <li>Logo 512×512 PNG transparent</li>
+              <li>Screenshots (3-5) interface n8n</li>
+              <li>Demo video 3-5 min (parcours complet)</li>
+            </ul>
+          </article>
+          <article class="doc-card">
+            <h3>🔧 Config technique</h3>
+            <ul style="margin-left: 1.5rem; line-height: 2;">
+              <li>Redirect URI HTTPS prod</li>
+              <li>OAuth flow testé (sandbox)</li>
+              <li>Rate limit handling validé</li>
+              <li>Token refresh/revoke testé</li>
+            </ul>
+          </article>
+          <article class="doc-card">
+            <h3>🏢 Business Verification</h3>
+            <ul style="margin-left: 1.5rem; line-height: 2;">
+              <li>KBIS / SIRET < 3 mois</li>
+              <li>Pièce identité dirigeant</li>
+              <li>Justificatif adresse</li>
+              <li>Tax ID / VAT si applicable</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p><strong>n8n TikTok Content Manager</strong> — Version 1.0 — 22 novembre 2026</p>
+      <p>
+        <a href="privacy.html">Politique de Confidentialité</a> •
+        <a href="terms.html">Conditions d'Utilisation</a> •
+        <a href="data-usage.html">Data Usage Description</a> •
+        <a href="app-description.html">Description App</a>
+      </p>
+      <p style="margin-top: 1rem;">Développé par [Ton Nom] — <a href="mailto:ton@email.com">ton@email.com</a></p>
+      <p style="margin-top: 0.5rem; font-size: 0.8rem;">Auto-hébergé • Open Source Core • Conforme RGPD & TikTok API</p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -42,12 +42,12 @@ services:
       - ./output:/output
       - ./temp:/temp
 
-    # Add FFmpeg and Whisper to n8n container
+    # Add FFmpeg and Whisper to n8n container (n8nio/n8n is Debian-based)
     user: root
     entrypoint: >
       /bin/sh -c "
-        apk add --no-cache ffmpeg python3 py3-pip build-base &&
-        pip3 install --break-system-packages whisper-cpp-python 2>/dev/null || pip3 install --break-system-packages openai-whisper &&
+        apt-get update && apt-get install -y --no-install-recommends ffmpeg python3 python3-pip build-essential &&
+        pip3 install --break-system-packages openai-whisper &&
         exec /docker-entrypoint.sh
       "
 
@@ -88,7 +88,35 @@ services:
     volumes:
       - uptime_data:/app/data
 
+  # Reverse proxy + automatic HTTPS (Let's Encrypt) via Caddy
+  caddy:
+    image: caddy:2-alpine
+    container_name: tiktok-clips-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Public TikTok legal docs (privacy, terms, data-usage, app-description)
+  # Required by TikTok Developer Platform review - must be fetchable over HTTPS
+  docs:
+    image: nginx:alpine
+    container_name: tiktok-clips-docs
+    restart: unless-stopped
+    volumes:
+      - ./TikTokAPI_review/privacy.html:/usr/share/nginx/html/privacy.html:ro
+      - ./TikTokAPI_review/terms.html:/usr/share/nginx/html/terms.html:ro
+      - ./TikTokAPI_review/data-usage.html:/usr/share/nginx/html/data-usage.html:ro
+      - ./TikTokAPI_review/app-description.html:/usr/share/nginx/html/app-description.html:ro
+      - ./TikTokAPI_review/logo.png:/usr/share/nginx/html/logo.png:ro
+
 volumes:
   n8n_data:
   redis_data:
   uptime_data:
+  caddy_data:
+  caddy_config:

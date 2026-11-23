@@ -1,0 +1,40 @@
+# Caddyfile — automatic HTTPS via Let's Encrypt
+# Replace ${YOUR_DOMAIN} with your actual domain before deploying.
+
+{
+    email ${CADDY_EMAIL}
+}
+
+${YOUR_DOMAIN} {
+
+    # n8n automation UI
+    handle / {
+        reverse_proxy n8n:5678
+    }
+
+    # TikTok legal docs (required for Developer Platform review)
+    handle /privacy {
+        reverse_proxy docs:80
+    }
+
+    handle /terms {
+        reverse_proxy docs:80
+    }
+
+    handle /data-usage {
+        reverse_proxy docs:80
+    }
+
+    handle /app-description {
+        reverse_proxy docs:80
+    }
+
+    handle /logo.png {
+        reverse_proxy docs:80
+    }
+
+    # Health check
+    handle /healthz {
+        reverse_proxy n8n:5678
+    }
+}

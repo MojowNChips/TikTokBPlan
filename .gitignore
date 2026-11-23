@@ -1,0 +1,39 @@
+# Environment secrets (never commit real credentials)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+
+# n8n
+.n8n/
+custom-nodes/
+
+# Temp / output / models
+temp/
+output/
+models/*.bin
+models/*.pt
+*.mp4
+*.wav
+*.srt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

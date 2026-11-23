@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Conditions d'utilisation - n8n TikTok Content Manager">
+  <title>Conditions d'Utilisation — n8n TikTok Content Manager</title>
+  <style>
+    :root {
+      --color-bg: #fafafa;
+      --color-surface: #ffffff;
+      --color-text: #1a1a2e;
+      --color-text-muted: #4a4a6a;
+      --color-primary: #ea5b0c;
+      --color-primary-hover: #d44e0a;
+      --color-border: #e0e0e0;
+      --color-code-bg: #f5f5f5;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+      --max-width: 800px;
+      --spacing: 1.5rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f0f1a;
+        --color-surface: #1a1a2e;
+        --color-text: #f0f0f5;
+        --color-text-muted: #a0a0b0;
+        --color-border: #2a2a4a;
+        --color-code-bg: #151525;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      line-height: 1.7;
+      color: var(--color-text);
+      background: var(--color-bg);
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      background: var(--color-surface);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 3rem;
+      border: 1px solid var(--color-border);
+    }
+    header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); }
+    h1 { font-size: 2rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.5rem; }
+    .meta { font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.8; }
+    .meta strong { color: var(--color-text); }
+    nav.toc { margin: 2rem 0; padding: 1.5rem; background: var(--color-code-bg); border-radius: 8px; border: 1px solid var(--color-border); }
+    nav.toc h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--color-primary); }
+    nav.toc ul { list-style: none; columns: 2; column-gap: 2rem; }
+    nav.toc li { margin: 0.4rem 0; }
+    nav.toc a { color: var(--color-text); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    nav.toc a:hover { color: var(--color-primary); text-decoration: underline; }
+    @media (max-width: 600px) { nav.toc ul { columns: 1; } }
+    main h2 { font-size: 1.5rem; font-weight: 600; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-primary); color: var(--color-text); }
+    main h3 { font-size: 1.2rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--color-text); }
+    main h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--color-text-muted); }
+    main p { margin: 1rem 0; }
+    main ul, main ol { margin: 1rem 0 1rem 1.5rem; }
+    main li { margin: 0.5rem 0; }
+    main strong { font-weight: 600; }
+    main code { font-family: var(--font-mono); font-size: 0.9em; background: var(--color-code-bg); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--color-primary); }
+    main pre { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1.5rem 0; }
+    main pre code { background: none; padding: 0; color: var(--color-text); font-size: 0.85rem; line-height: 1.6; }
+    main table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+    main th, main td { padding: 0.75rem 1rem; border: 1px solid var(--color-border); text-align: left; }
+    main th { background: var(--color-code-bg); font-weight: 600; color: var(--color-text); }
+    main tr:nth-child(even) td { background: var(--color-code-bg); }
+    main blockquote { border-left: 4px solid var(--color-primary); padding-left: 1rem; margin: 1.5rem 0; color: var(--color-text-muted); font-style: italic; }
+    main hr { border: none; border-top: 1px solid var(--color-border); margin: 2rem 0; }
+    .checklist { list-style: none; }
+    .checklist li { padding-left: 1.5rem; position: relative; margin: 0.5rem 0; }
+    .checklist li::before { content: "✅"; position: absolute; left: 0; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; }
+    .badge-yes { background: #d4edda; color: #155724; }
+    .badge-no { background: #f8d7da; color: #721c24; }
+    .badge-wip { background: #fff3cd; color: #856404; }
+    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 0.9rem; text-align: center; }
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .skip-link { position: absolute; top: -100%; left: 50%; transform: translateX(-50%); background: var(--color-primary); color: white; padding: 0.5rem 1rem; border-radius: 4px; z-index: 100; }
+    .skip-link:focus { top: 1rem; }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      nav.toc { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+  <div class="container">
+    <header>
+      <h1>Conditions d'Utilisation</h1>
+      <div class="meta">
+        <strong>Application :</strong> n8n TikTok Content Manager<br>
+        <strong>Dernière mise à jour :</strong> 22 novembre 2026<br>
+        <strong>Version :</strong> 1.0<br>
+        <strong>Éditeur :</strong> [Ton Nom / Nom de ton entreprise]<br>
+        <strong>Contact :</strong> <a href="mailto:ton@email.com">ton@email.com</a>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="Table des matières">
+      <h2>Sommaire</h2>
+      <ul>
+        <li><a href="#acceptation">1. Acceptation des Conditions</a></li>
+        <li><a href="#description">2. Description du Service</a></li>
+        <li><a href="#eligibilite">3. Éligibilité</a></li>
+        <li><a href="#compte">4. Compte et Authentification</a></li>
+        <li><a href="#licence">5. Licence d'Utilisation</a></li>
+        <li><a href="#contenu">6. Contenu Utilisateur</a></li>
+        <li><a href="#api">7. Utilisation de l'API TikTok</a></li>
+        <li><a href="#disponibilite">8. Disponibilité et Maintenance</a></li>
+        <li><a href="#propriete">9. Propriété Intellectuelle</a></li>
+        <li><a href="#donnees">10. Données Personnelles et Confidentialité</a></li>
+        <li><a href="#responsabilite">11. Responsabilité et Garanties</a></li>
+        <li><a href="#indemnisation">12. Indemnisation</a></li>
+        <li><a href="#resiliation">13. Résiliation</a></li>
+        <li><a href="#droit">14. Droit Applicable et Juridiction</a></li>
+        <li><a href="#generalites">15. Dispositions Générales</a></li>
+        <li><a href="#modifications">16. Modifications des CGU</a></li>
+        <li><a href="#contact">17. Contact</a></li>
+        <li><a href="#annexe">Annexe : Checklist Conformité TikTok API</a></li>
+      </ul>
+    </nav>
+
+    <main id="main-content">
+      <section id="acceptation">
+        <h2>1. Acceptation des Conditions</h2>
+        <p>En accédant à l'Application <strong>« n8n TikTok Content Manager »</strong> (ci-après « l'Application », « le Service », « nous »), vous acceptez sans réserve les présentes Conditions d'Utilisation (ci-après « CGU »).</p>
+        <p>Si vous n'acceptez pas ces CGU, vous ne devez pas utiliser l'Application.</p>
+      </section>
+
+      <section id="description">
+        <h2>2. Description du Service</h2>
+        <p>L'Application est un <strong>workflow n8n auto-hébergé</strong> permettant aux utilisateurs de :</p>
+        <ul>
+          <li>S'authentifier via <strong>TikTok Login Kit</strong> (OAuth 2.0)</li>
+          <li>Programmer, préparer et publier des vidéos et photos sur leur compte TikTok via <strong>TikTok Video Kit / Content Posting API</strong></li>
+          <li>Gérer leurs brouillons, contenus planifiés et historique de publications</li>
+        </ul>
+        <p>L'Application n'est <strong>pas</strong> un produit TikTok, ByteDance, ou n8n.io. C'est un outil tiers développé indépendamment.</p>
+      </section>
+
+      <section id="eligibilite">
+        <h2>3. Éligibilité</h2>
+        <p>Pour utiliser l'Application, vous devez :</p>
+        <ul>
+          <li>Avoir <strong>13 ans minimum</strong> (ou l'âge minimum requis par TikTok dans votre juridiction)</li>
+          <li>Disposer d'un <strong>compte TikTok valide</strong> et en règle</li>
+          <li>Avoir la <strong>capacité juridique</strong> de contracter</li>
+          <li>Ne pas être interdit d'utilisation des services TikTok</li>
+        </ul>
+      </section>
+
+      <section id="compte">
+        <h2>4. Compte et Authentification</h2>
+        <h3>4.1 Connexion via TikTok</h3>
+        <p>L'authentification est déléguée à <strong>TikTok</strong> via le protocole <strong>OAuth 2.0</strong> (Login Kit).</p>
+        <ul>
+          <li>Vous autorisez l'Application à accéder à votre profil basique et à publier du contenu en votre nom</li>
+          <li>Vous pouvez révoquer cette autorisation à tout moment depuis les paramètres TikTok > Sécurité > Applications autorisées</li>
+          <li>Nous ne stockons <strong>jamais</strong> votre mot de passe TikTok</li>
+        </ul>
+        <h3>4.2 Sécurité du Compte</h3>
+        <ul>
+          <li>Vous êtes responsable de la confidentialité de votre session n8n</li>
+          <li>Déconnexion recommandée sur appareils partagés</li>
+          <li>En cas d'accès non autorisé : contactez-nous immédiatement</li>
+        </ul>
+      </section>
+
+      <section id="licence">
+        <h2>5. Licence d'Utilisation</h2>
+        <h3>5.1 Octroi de Licence</h3>
+        <p>Nous vous accordons une licence <strong>personnelle, non exclusive, non transférable, révocable</strong> d'utiliser l'Application pour vos besoins personnels ou professionnels internes.</p>
+        <h3>5.2 Restrictions</h3>
+        <p>Il vous est interdit de :</p>
+        <ul class="checklist" style="list-style: none;">
+          <li style="padding-left: 1.5rem; position: relative; margin: 0.5rem 0;"><span style="position: absolute; left: 0;">❌</span>Revendre, louer, sous-licencier l'Application</li>
+          <li style="padding-left: 1.5rem; position: relative; margin: 0.5rem 0;"><span style="position: absolute; left: 0;">❌</span>Modifier, décompiler, faire de l'ingénierie inverse</li>
+          <li style="padding-left: 1.5rem; position: relative; margin: 0.5rem 0;"><span style="position: absolute; left: 0;">❌</span>Utiliser l'Application pour du spam, contenu illégal, haineux, trompeur</li>
+          <li style="padding-left: 1.5rem; position: relative; margin: 0.5rem 0;"><span style="position: absolute; left: 0;">❌</span>Contourner les limites de taux (rate limits) de l'API TikTok</li>
+          <li style="padding-left: 1.5rem; position: relative; margin: 0.5rem 0;"><span style="position: absolute; left: 0;">❌</span>Publier du contenu enfreignant les <strong>Community Guidelines TikTok</strong></li>
+          <li style="padding-left: 1.5rem; position: relative; margin: 0.5rem 0;"><span style="position: absolute; left: 0;">❌</span>Utiliser l'Application pour des comptes dont vous n'êtes pas le propriétaire légitime</li>
+        </ul>
+      </section>
+
+      <section id="contenu">
+        <h2>6. Contenu Utilisateur</h2>
+        <h3>6.1 Propriété</h3>
+        <p>Vous conservez <strong>tous les droits</strong> sur votre contenu (vidéos, images, légendes, métadonnées).</p>
+        <h3>6.2 Licence pour Publication</h3>
+        <p>En publiant via l'Application, vous nous accordez une licence <strong>mondiale, gratuite, non exclusive, limitée</strong> pour :</p>
+        <ul>
+          <li>Transmettre votre contenu à l'API TikTok Video Kit</li>
+          <li>Le stocker temporairement le temps de la publication</li>
+          <li>Afficher les aperçus dans l'interface n8n</li>
+        </ul>
+        <p>Cette licence prend fin à la publication effective ou à la suppression du brouillon.</p>
+        <h3>6.3 Responsabilité du Contenu</h3>
+        <p><strong>Vous êtes seul responsable</strong> du contenu que vous publiez.</p>
+        <ul>
+          <li>Respect des droits d'auteur, marques, vie privée, droit à l'image</li>
+          <li>Conformité aux <strong>Community Guidelines TikTok</strong> et lois applicables</li>
+          <li>Pas de contenu : illégal, haineux, harcèlement, désinformation, violence, nudité, contrefaçon</li>
+        </ul>
+        <h3>6.4 Modération</h3>
+        <p>Nous ne modérons <strong>pas</strong> le contenu avant publication (sauf contrainte technique API). TikTok applique sa propre modération post-publication. Nous ne sommes pas responsables des suppressions, restrictions ou bannissements décidés par TikTok.</p>
+      </section>
+
+      <section id="api">
+        <h2>7. Utilisation de l'API TikTok</h2>
+        <h3>7.1 Conformité</h3>
+        <p>L'Application utilise les API officielles <strong>TikTok Login Kit</strong> et <strong>Video Kit</strong>. Vous acceptez de respecter :</p>
+        <ul>
+          <li><a href="https://developers.tiktok.com/terms/" target="_blank" rel="noopener">TikTok Developer Terms of Service</a></li>
+          <li><a href="https://developers.tiktok.com/doc/tt-api-terms-of-use/" target="_blank" rel="noopener">TikTok API Terms of Use</a></li>
+          <li><a href="https://www.tiktok.com/community-guidelines" target="_blank" rel="noopener">TikTok Community Guidelines</a></li>
+          <li><a href="https://developers.tiktok.com/doc/platform-policies" target="_blank" rel="noopener">TikTok Platform Policies</a></li>
+        </ul>
+        <h3>7.2 Limites Techniques</h3>
+        <ul>
+          <li>Respect des <strong>rate limits</strong> API TikTok (quotas quotidiens, par minute)</li>
+          <li>L'Application implémente une file d'attente et retry automatique</li>
+          <li>En cas de quota dépassé : publication retardée, notification envoyée</li>
+        </ul>
+        <h3>7.3 Modifications API</h3>
+        <p>TikTok peut modifier ses API, scopes, ou conditions à tout moment. Nous ferons nos meilleurs efforts pour adapter l'Application, mais ne garantissons pas la continuité immédiate.</p>
+      </section>
+
+      <section id="disponibilite">
+        <h2>8. Disponibilité et Maintenance</h2>
+        <h3>8.1 Service « Tel Quel »</h3>
+        <p>L'Application est fournie <strong>« en l'état »</strong> et <strong>« selon disponibilité »</strong>.</p>
+        <ul>
+          <li>Aucune garantie de disponibilité 24/7 (auto-hébergé = vous gérez l'infra)</li>
+          <li>Maintenance, mises à jour, correctifs peuvent causer des interruptions</li>
+        </ul>
+        <h3>8.2 Sauvegardes</h3>
+        <p><strong>Vous êtes responsable</strong> de sauvegarder vos workflows n8n, configurations, et médias. Nous recommandons : backup quotidien base n8n + versioning Git des workflows.</p>
+      </section>
+
+      <section id="propriete">
+        <h2>9. Propriété Intellectuelle</h2>
+        <h3>9.1 Nos Droits</h3>
+        <p>L'Application (code, workflows n8n fournis, documentation, marque « n8n TikTok Content Manager ») est notre propriété exclusive ou sous licence.</p>
+        <h3>9.2 n8n</h3>
+        <p>L'Application s'appuie sur <strong>n8n</strong> (licence <a href="https://github.com/n8n-io/n8n/blob/master/LICENSE.md" target="_blank" rel="noopener">Fair Code / Sustainable Use License</a>). Vous devez respecter la licence n8n pour votre instance auto-hébergée.</p>
+        <h3>9.3 TikTok</h3>
+        <p>« TikTok », le logo TikTok, « Video Kit », « Login Kit » sont des marques de <strong>ByteDance Ltd.</strong> Utilisation conforme aux <a href="https://developers.tiktok.com/doc/brand-guidelines" target="_blank" rel="noopener">Brand Guidelines TikTok</a>.</p>
+      </section>
+
+      <section id="donnees">
+        <h2>10. Données Personnelles et Confidentialité</h2>
+        <p>Le traitement de vos données personnelles est régi par notre <a href="privacy.html">Politique de Confidentialité</a>. En utilisant l'Application, vous consentez aux traitements décrits dans cette politique.</p>
+      </section>
+
+      <section id="responsabilite">
+        <h2>11. Responsabilité et Garanties</h2>
+        <h3>11.1 Exclusion de Garanties</h3>
+        <p>L'Application est fournie <strong>SANS GARANTIE</strong> d'aucune sorte, expresse ou implicite :</p>
+        <ul>
+          <li>Pas de garantie de commercialité, adéquation à un usage particulier, non-contrefaçon</li>
+          <li>Pas de garantie que le service sera ininterrompu, sans erreur, sécurisé</li>
+          <li>Pas de garantie quant aux résultats (viralité, reach, engagement)</li>
+        </ul>
+        <h3>11.2 Limitation de Responsabilité</h3>
+        <p><strong>Notre responsabilité totale</strong> pour tout dommage direct, indirect, accessoire, consécutif, punitif est limitée à <strong>100 €</strong> (ou montant payé le cas échéant).</p>
+        <p>Nous ne sommes <strong>pas responsables</strong> pour :</p>
+        <ul>
+          <li>Perte de données, profits, opportunité, réputation</li>
+          <li>Suspension/bannissement compte TikTok</li>
+          <li>Modifications API TikTok cassant la compatibilité</li>
+          <li>Dysfonctionnements infrastructure tiers (hébergeur, CDN, DNS)</li>
+        </ul>
+        <h3>11.3 Force Majeure</h3>
+        <p>Aucune partie n'est responsable des retards/inexécution dus à force majeure (catastrophe, guerre, grève, panne infrastructure majeure, décision réglementaire).</p>
+      </section>
+
+      <section id="indemnisation">
+        <h2>12. Indemnisation</h2>
+        <p>Vous acceptez d'<strong>indemniser, défendre et tenir hors de cause</strong> l'Éditeur contre toute réclamation, dommage, frais (honoraires d'avocat inclus) découlant de :</p>
+        <ul>
+          <li>Votre violation des présentes CGU</li>
+          <li>Votre contenu publié (contrefaçon, diffamation, vie privée, etc.)</li>
+          <li>Votre utilisation non autorisée de l'Application</li>
+          <li>Votre violation des droits d'un tiers</li>
+        </ul>
+      </section>
+
+      <section id="resiliation">
+        <h2>13. Résiliation</h2>
+        <h3>13.1 Par Vous</h3>
+        <p>Vous pouvez cesser d'utiliser l'Application à tout moment :</p>
+        <ul>
+          <li>Déconnexion TikTok dans l'app = suppression tokens</li>
+          <li>Suppression de votre instance n8n / workflows</li>
+        </ul>
+        <h3>13.2 Par Nous</h3>
+        <p>Nous pouvons suspendre ou résilier votre accès si :</p>
+        <ul>
+          <li>Violation grave ou répétée des CGU</li>
+          <li>Utilisation frauduleuse, illégale, nuisible</li>
+          <li>Demande de TikTok / autorité compétente</li>
+          <li>Cessation de l'Application (préavis 30j par email)</li>
+        </ul>
+        <h3>13.3 Effets de la Résiliation</h3>
+        <ul>
+          <li>Accès à l'Application coupé</li>
+          <li>Tokens OAuth révoqués (appel API TikTok <code>revoke</code> si dispo)</li>
+          <li>Données conservées selon <a href="privacy.html">Politique de Confidentialité</a> (durées maximales)</li>
+          <li>Clauses 9, 10, 11, 12, 13, 14, 15 survivent</li>
+        </ul>
+      </section>
+
+      <section id="droit">
+        <h2>14. Droit Applicable et Juridiction</h2>
+        <p><strong>Droit applicable :</strong> Droit français (ou droit de votre pays de résidence si consommateur UE)<br>
+        <strong>Juridiction compétente :</strong> Tribunaux de [Votre Ville / Tribunal de Commerce]<br>
+        <strong>Médiation préalable :</strong> Tentative de résolution amiable (30j) avant toute action contentieuse</p>
+        <p>Pour les consommateurs UE : vous pouvez saisir le tribunal de votre lieu de résidence.</p>
+      </section>
+
+      <section id="generalites">
+        <h2>15. Dispositions Générales</h2>
+        <h3>15.1 Intégralité</h3>
+        <p>Ces CGU + Politique de Confidentialité = accord complet entre vous et nous.</p>
+        <h3>15.2 Nullité Partielle</h3>
+        <p>Si une clause est invalide, les autres restent en vigueur. La clause invalide est remplacée par une clause valide au plus proche de l'intention initiale.</p>
+        <h3>15.3 Non-Renonciation</h3>
+        <p>Le fait de ne pas exercer un droit ne constitue pas une renonciation.</p>
+        <h3>15.4 Cession</h3>
+        <p>Nous pouvons céder nos droits/obligations (notification préalable). Vous ne pouvez pas céder les vôtres.</p>
+        <h3>15.5 Langue</h3>
+        <p>Version française faisant foi. Traductions fournies à titre informatif.</p>
+      </section>
+
+      <section id="modifications">
+        <h2>16. Modifications des CGU</h2>
+        <p>Nous pouvons modifier ces CGU à tout moment.</p>
+        <ul>
+          <li><strong>Modifications mineures</strong> (clarifications, liens) : entrée en vigueur immédiate, notification in-app</li>
+          <li><strong>Modifications substantielles</strong> (nouvelles obligations, responsabilité, données) : notification <strong>email 30 jours</strong> avant entrée en vigueur + bannière in-app</li>
+          <li>Votre utilisation continue après entrée en vigueur = acceptation</li>
+        </ul>
+        <p><strong>Historique versions :</strong></p>
+        <ul>
+          <li>v1.0 (22/11/2026) : Création initiale pour soumission TikTok API</li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>17. Contact</h2>
+        <p>Pour toute question relative à ces CGU :</p>
+        <p><strong>Éditeur :</strong> [Ton Nom / Raison Sociale]<br>
+        <strong>Adresse :</strong> [Ton Adresse Complète]<br>
+        <strong>Email :</strong> <a href="mailto:ton@email.com">ton@email.com</a><br>
+        <strong>Réponse sous :</strong> 15 jours ouvrés</p>
+      </section>
+
+      <section id="annexe">
+        <h2>Annexe : Checklist Conformité TikTok API</h2>
+        <table>
+          <thead>
+            <tr><th>Exigence TikTok</th><th>Statut</th><th>Preuve / Localisation</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Privacy Policy accessible via URL</td><td><span class="badge badge-yes">✅</span></td><td>Hébergée sur <code>https://ton-domaine.com/privacy</code></td></tr>
+            <tr><td>Terms of Service accessible via URL</td><td><span class="badge badge-yes">✅</span></td><td>Hébergée sur <code>https://ton-domaine.com/terms</code></td></tr>
+            <tr><td>Logo app conforme Brand Guidelines</td><td><span class="badge badge-yes">✅</span></td><td>Fichier <code>logo.png</code> (512x512, PNG, fond transparent)</td></tr>
+            <tr><td>Redirect URI HTTPS (production)</td><td><span class="badge badge-yes">✅</span></td><td><code>https://ton-domaine.com/callback</code></td></tr>
+            <tr><td>Scopes minimaux justifiés</td><td><span class="badge badge-yes">✅</span></td><td>Voir Privacy Policy § Annexe</td></tr>
+            <tr><td>Data Usage Description fournie</td><td><span class="badge badge-yes">✅</span></td><td>Fichier <code>data-usage.html</code></td></tr>
+            <tr><td>Demo video / screenshots</td><td><span class="badge badge-wip">🔄</span></td><td>À fournir avant soumission finale</td></tr>
+            <tr><td>Business verification (si requis)</td><td><span class="badge badge-wip">🔄</span></td><td>KBIS / SIRET / Tax ID selon pays</td></tr>
+            <tr><td>Contact support fonctionnel</td><td><span class="badge badge-yes">✅</span></td><td><code>support@ton-domaine.com</code> — réponse < 48h</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer>
+      <p>Conditions d'Utilisation — n8n TikTok Content Manager — Version 1.0 — 22 novembre 2026</p>
+      <p><a href="mailto:ton@email.com">Contact</a> | <a href="privacy.html">Politique de Confidentialité</a> | <a href="data-usage.html">Description Usage Données</a></p>
+    </footer>
+  </div>
+</body>
+</html>

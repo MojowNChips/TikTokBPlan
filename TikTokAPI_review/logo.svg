@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: transparent (no rect) -->
+
+  <!-- Safety margin: 56px each side = useful area 400x400 centered -->
+  <!-- All main elements stay within 56..456 -->
+
+  <defs>
+    <!-- n8n Orange Gradient -->
+    <linearGradient id="n8nGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EA5B0C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF7B2A;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- TikTok Cyan Accent Gradient -->
+    <linearGradient id="ttGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00F2EA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00D4CC;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Dark neutral for outlines/text -->
+    <linearGradient id="darkGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A1A2E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F0F1A;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow filter for subtle depth -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft shadow -->
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Main container with soft shadow -->
+  <g filter="url(#softShadow)">
+    <!-- Three connected nodes representing n8n workflow -->
+    <!-- Node 1: Left (Trigger/Input) -->
+    <g transform="translate(140, 256)">
+      <!-- Node background -->
+      <rect x="-48" y="-48" width="96" height="96" rx="16" fill="url(#n8nGradient)" filter="url(#glow)"/>
+      <!-- Node icon: Play/Start symbol -->
+      <polygon points="-12,-24 24,0 -12,24" fill="#FFFFFF" opacity="0.95"/>
+      <!-- Connection line to next node -->
+      <line x1="48" y1="0" x2="112" y2="0" stroke="url(#n8nGradient)" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      <!-- Arrow head -->
+      <polygon points="104,-8 120,0 104,8" fill="url(#n8nGradient)" opacity="0.6"/>
+    </g>
+
+    <!-- Node 2: Center (Process/Transform) -->
+    <g transform="translate(256, 256)">
+      <!-- Node background - larger, central -->
+      <rect x="-56" y="-56" width="112" height="112" rx="18" fill="url(#darkGradient)" filter="url(#glow)"/>
+      <!-- Node border accent -->
+      <rect x="-56" y="-56" width="112" height="112" rx="18" fill="none" stroke="url(#n8nGradient)" stroke-width="2.5" opacity="0.8"/>
+      <!-- Node icon: Gear/Cog representing automation -->
+      <g fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+        <circle cx="0" cy="0" r="18"/>
+        <g transform="rotate(0)">
+          <line x1="0" y1="-30" x2="0" y2="-22"/>
+          <line x1="0" y1="22" x2="0" y2="30"/>
+          <line x1="-30" y1="0" x2="-22" y2="0"/>
+          <line x1="22" y1="0" x2="30" y2="0"/>
+          <line x1="-21" y1="-21" x2="-15.5" y2="-15.5"/>
+          <line x1="15.5" y1="15.5" x2="21" y2="21"/>
+          <line x1="-21" y1="21" x2="-15.5" y2="15.5"/>
+          <line x1="15.5" y1="-15.5" x2="21" y2="-21"/>
+        </g>
+      </g>
+      <!-- Connection line to next node -->
+      <line x1="56" y1="0" x2="104" y2="0" stroke="url(#ttGradient)" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+      <!-- Arrow head -->
+      <polygon points="96,-8 112,0 96,8" fill="url(#ttGradient)" opacity="0.7"/>
+    </g>
+
+    <!-- Node 3: Right (Output/Publish to TikTok) -->
+    <g transform="translate(372, 256)">
+      <!-- Node background with TikTok accent -->
+      <rect x="-48" y="-48" width="96" height="96" rx="16" fill="url(#darkGradient)" filter="url(#glow)"/>
+      <!-- TikTok style border -->
+      <rect x="-48" y="-48" width="96" height="96" rx="16" fill="none" stroke="url(#ttGradient)" stroke-width="2.5" opacity="0.9"/>
+      <!-- Node icon: Musical note + upload arrow (TikTok content) -->
+      <g fill="#FFFFFF" opacity="0.95">
+        <!-- Musical note -->
+        <path d="M-18,-10 Q-18,-20 -8,-20 Q2,-20 2,-10 Q2,0 -8,0 Q-18,0 -18,-10 Z" transform="translate(-6, 4)"/>
+        <path d="M10,-10 Q10,-20 20,-20 Q30,-20 30,-10 Q30,0 20,0 Q10,0 10,-10 Z" transform="translate(4, 4)"/>
+        <rect x="-14" y="-10" width="4" height="36" rx="2" transform="translate(-6, 4)"/>
+        <rect x="16" y="-10" width="4" height="36" rx="2" transform="translate(4, 4)"/>
+        <!-- Upload arrow below note -->
+        <polygon points="0,-4 -8,6 8,6" transform="translate(0, 22)" fill="url(#ttGradient)"/>
+        <line x1="0" y1="6" x2="0" y2="18" stroke="url(#ttGradient)" stroke-width="3" stroke-linecap="round" transform="translate(0, 22)"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Subtle "n8n" text indicator at bottom (very small, optional) -->
+  <text x="256" y="470" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" fill="#EA5B0C" text-anchor="middle" opacity="0.6" letter-spacing="2">n8n</text>
+</svg>

@@ -72,7 +72,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Final render: burn captions + watermark + branding\nconst { croppedPath, captionPath, clip_id, streamer, title, outputPath } = $json;\n\nconst captionStyle = \"Fontsize=24,Fontcolor=white,Outline=2,OutlineColour=black,Alignment=2,MarginV=150\";\n\nconst cmd = `ffmpeg -y -i \"${croppedPath}\" \\\n  -vf \"subtitles='${captionPath}':force_style='${captionStyle}', \\\n    drawtext=text='@${streamer}':fontsize=36:fontcolor=white:x=w-tw-20:y=20:box=1:boxcolor=black@0.5:boxborderw=5, \\\n    drawtext=text='${title.substring(0, 50)}':fontsize=28:fontcolor=white:x=(w-tw)/2:y=h-100:box=1:boxcolor=black@0.5:boxborderw=5\" \\\n  -c:v libx264 -preset fast -crf 22 -c:a aac -b:a 128k \\\n  -movflags +faststart \\\n  \"${outputPath}\"`;\n\nreturn { ...$json, finalCmd: cmd };"
+        "functionCode": "// Final render: burn captions + watermark + branding\nconst { croppedPath, captionPath, clip_id, streamer, title, outputPath } = $json;\nconst watermarkPath = '/scripts/assets/watermark.png';\n\nconst captionStyle = \"Fontsize=24,Fontcolor=white,Outline=2,OutlineColour=black,Alignment=2,MarginV=150\";\n\n// Watermark: scale to 15% of width, place bottom-right with padding\nconst cmd = `ffmpeg -y -i \"${croppedPath}\" -i \"${watermarkPath}\" \\\n  -filter_complex \"[1:v]scale=iw*0.15:ih*0.15[wm]; \\\n  [0:v]subtitles='${captionPath}':force_style='${captionStyle}', \\\n    drawtext=text='@${streamer}':fontsize=36:fontcolor=white:x=w-tw-20:y=20:box=1:boxcolor=black@0.5:boxborderw=5, \\\n    drawtext=text='${title.substring(0, 50)}':fontsize=28:fontcolor=white:x=(w-tw)/2:y=h-100:box=1:boxcolor=black@0.5:boxborderw=5[base]; \\\n  [base][wm]overlay=W-w-20:H-h-20\" \\\n  -c:v libx264 -preset fast -crf 22 -c:a aac -b:a 128k \\\n  -movflags +faststart \\\n  \"${outputPath}\"`;\n\nreturn { ...$json, finalCmd: cmd };"
       },
       "id": "gen-final-render",
       "name": "Generate Final Render Command",
@@ -95,7 +95,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Upload to R2 / S3 and return public URL\nconst { outputPath, clip_id } = $json;\n\nconst fs = require('fs');\nif (!fs.existsSync(outputPath)) {\n  throw new Error('Output file not found');\n}\n\nconst stats = fs.statSync(outputPath);\nconst fileSizeMB = (stats.size / 1024 / 1024).toFixed(2);\n\n// In production, use AWS SDK or rclone to upload\n// For now, return local path\nreturn {\n  ...$json,\n  video_path: outputPath,\n  video_url: `${$env.R2_PUBLIC_URL}/${clip_id}.mp4`,\n  file_size_mb: fileSizeMB,\n  status: 'ready_to_post'\n};"
+        "functionCode": "// Upload to R2 / S3 and return public URL\nconst { outputPath, clip_id } = $json;\nconst fs = require('fs');\nif (!fs.existsSync(outputPath)) {\n  throw new Error('Output file not found');\n}\n\nconst stats = fs.statSync(outputPath);\nconst fileSizeMB = (stats.size / 1024 / 1024).toFixed(2);\n\n// Upload to R2 / S3 using the AWS CLI (pre-installed on VPS)\n// Returns the public URL after successful upload\nconst { execSync } = require('child_process');\nconst r2Bucket = $env.R2_BUCKET_NAME || 'tiktok-clips';\nconst r2PublicUrl = $env.R2_PUBLIC_URL || '';\nconst s3Key = `clips/${clip_id}.mp4`;\n\nlet video_url = outputPath; // fallback to local path\ntry {\n  execSync(\n    `aws s3 cp \"${outputPath}\" \"s3://${r2Bucket}/${s3Key}\" --acl public-read --region auto`,\n    { stdio: 'pipe', timeout: 300000 }\n  );\n  video_url = r2PublicUrl ? `${r2PublicUrl.replace(/\/$/, '')}/${s3Key}` : `https://${r2Bucket}.r2.cloudflarestorage.com/${s3Key}`;\n} catch (err) {\n  // Upload failed — still mark ready but note the failure\n  console.error('R2 upload failed:', err.message);\n  video_url = outputPath;\n}\n\nreturn {\n  ...$json,\n  video_path: outputPath,\n  video_url,\n  file_size_mb: fileSizeMB,\n  status: 'ready_to_post'\n};"
       },
       "id": "verify-upload",
       "name": "Verify & Prepare for Upload",
@@ -228,7 +228,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   }

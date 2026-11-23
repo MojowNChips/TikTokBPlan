@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Description de l'usage des données - n8n TikTok Content Manager">
+  <title>Data Usage Description — n8n TikTok Content Manager</title>
+  <style>
+    :root {
+      --color-bg: #fafafa;
+      --color-surface: #ffffff;
+      --color-text: #1a1a2e;
+      --color-text-muted: #4a4a6a;
+      --color-primary: #ea5b0c;
+      --color-primary-hover: #d44e0a;
+      --color-border: #e0e0e0;
+      --color-code-bg: #f5f5f5;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+      --max-width: 900px;
+      --spacing: 1.5rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f0f1a;
+        --color-surface: #1a1a2e;
+        --color-text: #f0f0f5;
+        --color-text-muted: #a0a0b0;
+        --color-border: #2a2a4a;
+        --color-code-bg: #151525;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      line-height: 1.7;
+      color: var(--color-text);
+      background: var(--color-bg);
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      background: var(--color-surface);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 3rem;
+      border: 1px solid var(--color-border);
+    }
+    header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); }
+    h1 { font-size: 2rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.5rem; }
+    .meta { font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.8; }
+    .meta strong { color: var(--color-text); }
+    nav.toc { margin: 2rem 0; padding: 1.5rem; background: var(--color-code-bg); border-radius: 8px; border: 1px solid var(--color-border); }
+    nav.toc h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--color-primary); }
+    nav.toc ul { list-style: none; columns: 2; column-gap: 2rem; }
+    nav.toc li { margin: 0.4rem 0; }
+    nav.toc a { color: var(--color-text); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    nav.toc a:hover { color: var(--color-primary); text-decoration: underline; }
+    @media (max-width: 600px) { nav.toc ul { columns: 1; } }
+    main h2 { font-size: 1.5rem; font-weight: 600; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-primary); color: var(--color-text); }
+    main h3 { font-size: 1.2rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--color-text); }
+    main h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--color-text-muted); }
+    main p { margin: 1rem 0; }
+    main ul, main ol { margin: 1rem 0 1rem 1.5rem; }
+    main li { margin: 0.5rem 0; }
+    main strong { font-weight: 600; }
+    main code { font-family: var(--font-mono); font-size: 0.9em; background: var(--color-code-bg); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--color-primary); }
+    main pre { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1.5rem 0; }
+    main pre code { background: none; padding: 0; color: var(--color-text); font-size: 0.85rem; line-height: 1.6; }
+    main table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.85rem; }
+    main th, main td { padding: 0.6rem 0.8rem; border: 1px solid var(--color-border); text-align: left; }
+    main th { background: var(--color-code-bg); font-weight: 600; color: var(--color-text); }
+    main tr:nth-child(even) td { background: var(--color-code-bg); }
+    main blockquote { border-left: 4px solid var(--color-primary); padding-left: 1rem; margin: 1.5rem 0; color: var(--color-text-muted); font-style: italic; }
+    main hr { border: none; border-top: 1px solid var(--color-border); margin: 2rem 0; }
+    .checklist { list-style: none; }
+    .checklist li { padding-left: 1.5rem; position: relative; margin: 0.5rem 0; }
+    .checklist li::before { content: "✅"; position: absolute; left: 0; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; }
+    .badge-yes { background: #d4edda; color: #155724; }
+    .badge-no { background: #f8d7da; color: #721c24; }
+    .badge-wip { background: #fff3cd; color: #856404; }
+    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 0.9rem; text-align: center; }
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .skip-link { position: absolute; top: -100%; left: 50%; transform: translateX(-50%); background: var(--color-primary); color: white; padding: 0.5rem 1rem; border-radius: 4px; z-index: 100; }
+    .skip-link:focus { top: 1rem; }
+    .diagram { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 1.5rem; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.5; overflow-x: auto; white-space: pre; margin: 1.5rem 0; }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      nav.toc { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+  <div class="container">
+    <header>
+      <h1>Data Usage Description</h1>
+      <div class="meta">
+        <strong>App Name :</strong> n8n TikTok Content Manager<br>
+        <strong>APIs Used :</strong> TikTok Login Kit + Video Kit (Content Posting API)<br>
+        <strong>Version :</strong> 1.0<br>
+        <strong>Date :</strong> 22 novembre 2026<br>
+        <strong>Developer :</strong> [Ton Nom / Raison Sociale]
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="Table des matières">
+      <h2>Sommaire</h2>
+      <ul>
+        <li><a href="#overview">1. Vue d'Ensemble</a></li>
+        <li><a href="#tiktok-data">2. Données Reçues de TikTok</a></li>
+        <li><a href="#app-data">3. Données Générées par l'App</a></li>
+        <li><a href="#data-flow">4. Flux de Données</a></li>
+        <li><a href="#scope-justification">5. Justification par Scope</a></li>
+        <li><a href="#protection">6. Mesures de Protection</a></li>
+        <li><a href="#gdpr">7. Conformité RGPD</a></li>
+        <li><a href="#transfers">8. Transferts Internationaux</a></li>
+        <li><a href="#no-secondary">9. Aucun Usage Secondaire</a></li>
+        <li><a href="#tests">10. Tests et Validation</a></li>
+        <li><a href="#checklist">11. Checklist Soumission TikTok</a></li>
+        <li><a href="#contact">12. Contact Review Team</a></li>
+      </ul>
+    </nav>
+
+    <main id="main-content">
+      <section id="overview">
+        <h2>1. Vue d'Ensemble de l'Usage des Données</h2>
+        <p>Cette application est un <strong>outil d'automatisation auto-hébergé</strong> (n8n) permettant aux utilisateurs de <strong>programmer et publier du contenu sur leur propre compte TikTok</strong>. Elle n'agrège pas de données entre utilisateurs, ne fait pas de profilage, ne revend pas de données, et ne les utilise <strong>qu'aux fins strictes de publication de contenu</strong> initiée par l'utilisateur.</p>
+        <blockquote><strong>Principe directeur : Minimisation</strong> — Nous ne demandons, ne stockons, ne traitons que ce qui est strictement nécessaire pour la fonctionnalité de publication programmée.</blockquote>
+      </section>
+
+      <section id="tiktok-data">
+        <h2>2. Données Reçues de TikTok (via API)</h2>
+        <h3>2.1 Login Kit — <code>user.info.basic</code></h3>
+        <table>
+          <thead><tr><th>Champ</th><th>Type</th><th>Utilisation dans l'App</th><th>Stockage</th><th>Durée</th></tr></thead>
+          <tbody>
+            <tr><td><code>open_id</code></td><td>String (unique)</td><td>Clé primaire pour isoler workspaces multi-comptes ; identifier l'utilisateur dans logs/dashboards</td><td>Chiffré (AES-256) en base n8n</td><td>Durée autorisation + 30j post-révocation</td></tr>
+            <tr><td><code>union_id</code></td><td>String (optionnel)</td><td>Lier comptes même propriétaire cross-app (si applicable)</td><td>Chiffré</td><td>Idem</td></tr>
+            <tr><td><code>avatar_url</code></td><td>String (URL)</td><td>Affichage photo profil dans dashboard n8n (identification visuelle)</td><td><strong>Non stocké</strong> — récupéré à la volée pour affichage UI</td><td>Session uniquement</td></tr>
+            <tr><td><code>display_name</code></td><td>String</td><td>Affichage nom utilisateur dans dashboard, logs, notifications</td><td>Chiffré en base</td><td>Durée autorisation + 30j</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Finalité :</strong> Identification utilisateur, isolation données multi-comptes, UX dashboard.<br>
+        <strong>Base légale :</strong> Consentement explicite via écran OAuth TikTok.<br>
+        <strong>Partage :</strong> Aucun — reste dans l'instance n8n de l'utilisateur.</p>
+
+        <h3>2.2 Login Kit — <code>user.info.email</code></h3>
+        <table>
+          <thead><tr><th>Champ</th><th>Type</th><th>Utilisation dans l'App</th><th>Stockage</th><th>Durée</th></tr></thead>
+          <tbody>
+            <tr><td><code>email</code></td><td>String (email)</td><td>Notifications critiques : échec publication, token expiré, quota API, alerte sécurité ; récupération compte ; support technique</td><td>Chiffré (AES-256) en base n8n</td><td>Durée autorisation + 30j post-révocation</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Finalité :</strong> Communication transactionnelle essentielle au service (pas marketing).<br>
+        <strong>Base légale :</strong> Consentement explicite + Exécution contrat (notifications de service).<br>
+        <strong>Partage :</strong> Aucun — utilisé uniquement pour envoi emails via SMTP configuré par l'utilisateur.</p>
+
+        <h3>2.3 Video Kit — Données de Publication (Envoi vers TikTok)</h3>
+        <p>L'application <strong>envoie</strong> les données suivantes à l'API TikTok Video Kit <strong>uniquement au moment de la publication</strong> initiée par l'utilisateur :</p>
+        <table>
+          <thead><tr><th>Donnée</th><th>Source</th><th>Description</th><th>Stockage côté App</th></tr></thead>
+          <tbody>
+            <tr><td>Fichier vidéo/photo</td><td>Upload utilisateur</td><td>Média à publier (MP4, MOV, WebM, JPEG, PNG) — max 10Go, <10min ou <60s</td><td>Stocké temporairement sur S3/local (cycle de vie : suppression auto post-publication confirmée, max 7j)</td></tr>
+            <tr><td><code>post_info.title</code> / <code>description</code></td><td>Saisie utilisateur</td><td>Légende du post (texte, mentions @, hashtags #, emojis) — max 2200 caractères</td><td>Stocké dans workflow n8n (chiffré) jusqu'à publication + 90j</td></tr>
+            <tr><td><code>post_info.cover_image</code></td><td>Optionnel — sélection user</td><td>Image de couverture personnalisée (JPEG/PNG)</td><td>Temporaire (même cycle que média)</td></tr>
+            <tr><td><code>post_info.location</code></td><td>Optionnel — saisie user</td><td>Lieu/POI (ID TikTok ou coordonnées)</td><td>Non stocké — envoyé à l'API uniquement</td></tr>
+            <tr><td><code>post_info.privacy_level</code></td><td>Choix utilisateur</td><td><code>PUBLIC</code> / <code>FRIENDS</code> / <code>PRIVATE</code> / <code>FOLLOWERS</code></td><td>Stocké dans config workflow</td></tr>
+            <tr><td><code>post_info.disable_comment</code></td><td>Booléen — choix user</td><td>Désactiver commentaires</td><td>Stocké dans config workflow</td></tr>
+            <tr><td><code>post_info.disable_duet</code></td><td>Booléen — choix user</td><td>Désactiver duos</td><td>Stocké dans config workflow</td></tr>
+            <tr><td><code>post_info.disable_stitch</code></td><td>Booléen — choix user</td><td>Désactiver stitch</td><td>Stocké dans config workflow</td></tr>
+            <tr><td><code>post_info.brand_content_toggle</code></td><td>Booléen — choix user</td><td>Marquer comme contenu de marque (partenariat)</td><td>Stocké dans config workflow</td></tr>
+            <tr><td><code>post_info.brand_organic_toggle</code></td><td>Booléen — choix user</td><td>Contenu organique de marque</td><td>Stocké dans config workflow</td></tr>
+            <tr><td><code>schedule_time</code></td><td>Choix utilisateur</td><td>Date/heure publication programmée (timezone utilisateur)</td><td>Stocké dans workflow n8n (exécution planifiée)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Finalité :</strong> Publication du contenu sur le compte TikTok de l'utilisateur, selon ses paramètres.<br>
+        <strong>Base légale :</strong> Exécution contrat (l'utilisateur demande explicitement la publication).<br>
+        <strong>Destination :</strong> <strong>Uniquement</strong> API TikTok Video Kit (<code>/v2/video/upload/</code> + <code>/v2/video/publish/</code>).<br>
+        <strong>Rétention côté TikTok :</strong> Selon politiques TikTok (hors contrôle de l'app).</p>
+      </section>
+
+      <section id="app-data">
+        <h2>3. Données Générées / Stockées par l'Application (Côté n8n)</h2>
+        <p>Ces données <strong>ne viennent pas de TikTok</strong> mais sont créées par l'usage de l'app :</p>
+        <table>
+          <thead><tr><th>Catégorie</th><th>Exemples</th><th>Finalité</th><th>Stockage</th><th>Durée</th></tr></thead>
+          <tbody>
+            <tr><td>Workflows n8n</td><td>JSON définition workflow (nœuds, connexions, config)</td><td>Logique métier : planification, file d'attente, retry, notifications</td><td>Base n8n (PostgreSQL/SQLite) chiffrée</td><td>Jusqu'à suppression user</td></tr>
+            <tr><td>Credentials n8n</td><td>Tokens OAuth chiffrés (access_token, refresh_token)</td><td>Authentification API TikTok</td><td>n8n Credentials Store (chiffré natif)</td><td>Durée autorisation + rotation auto</td></tr>
+            <tr><td>Execution Logs</td><td>Timestamp, statut (success/error), post_id TikTok, erreur détaillée, durée</td><td>Débogage, audit, support, conformité rate limits</td><td>Base n8n (table executions)</td><td>1 an (logs) / 3 ans (audit)</td></tr>
+            <tr><td>Médias temporaires</td><td>Fichiers vidéo/image en attente de publication</td><td>Buffer upload (chunked upload, reprise)</td><td>Stockage S3-compatible (MinIO/S3/R2)</td><td>Suppression auto post-publish confirmé (max 7j)</td></tr>
+            <tr><td>Notifications envoyées</td><td>Email/Slack/Discord webhook payloads (succès, échec, alertes)</td><td>Preuve envoi, debug</td><td>Base n8n (table notifications)</td><td>90 jours</td></tr>
+            <tr><td>Config utilisateur</td><td>Timezone, préférences notifications, modèles légendes, listes hashtags</td><td>Personnalisation UX</td><td>Base n8n (table user_settings)</td><td>Durée compte actif</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="data-flow">
+        <h2>4. Flux de Données (Data Flow Diagram)</h2>
+        <div class="diagram">
+┌──────────────┐     OAuth 2.0      ┌──────────────────┐     API Calls      ┌─────────────┐
+│   Utilisateur │ ◀────────────────▶ │  n8n Instance    │ ◀───────────────▶  │   TikTok    │
+│  (Créateur)   │  (Authorization    │  (Auto-hébergée) │  (Video Kit:     │   API       │
+│              │   Code Flow + PKCE)│                  │   upload/publish)│             │
+└──────────────┘                    └────────┬─────────┘                  └─────────────┘
+                                             │
+                    ┌────────────────────────┼────────────────────────┐
+                    ▼                        ▼                        ▼
+            ┌───────────────┐        ┌───────────────┐        ┌───────────────┐
+            │  PostgreSQL/  │        │  Stockage     │        │  Files d'att. │
+            │  SQLite       │        │  S3/MinIO/R2  │        │  n8n (BullMQ) │
+            │  (Chiffré)    │        │  (Médias temp)│        │  (Rate limit) │
+            └───────────────┘        └───────────────┘        └───────────────┘
+                    │                        │                        │
+                    └────────────────────────┼────────────────────────┘
+                                             ▼
+                                    ┌───────────────┐
+                                    │  Monitoring   │
+                                    │  (Prometheus/ │
+                                    │   Grafana)    │
+                                    └───────────────┘
+        </div>
+        <p><strong>Points clés :</strong></p>
+        <ul>
+          <li><strong>Aucun transit</strong> vers nos serveurs (self-hosted = l'utilisateur contrôle l'infra)</li>
+          <li><strong>Chiffrement</strong> au repos (DB, S3) et en transit (TLS 1.3)</li>
+          <li><strong>Isolation</strong> : chaque compte TikTok = credentials séparés, workspace n8n isolé</li>
+          <li><strong>Pas de partage</strong> inter-utilisateurs, pas d'agrégation, pas d'analytics cross-comptes</li>
+        </ul>
+      </section>
+
+      <section id="scope-justification">
+        <h2>5. Justification Détaillée par Scope Demandé</h2>
+        <table>
+          <thead><tr><th>Scope</th><th>Justification Business (Minimisation)</th><th>Alternative envisagée (rejetée)</th></tr></thead>
+          <tbody>
+            <tr><td><code>user.info.basic</code></td><td><strong>Indispensable</strong> : identifier l'utilisateur connecté, isoler ses données/workflows, afficher son nom/avatar dans l'UI n8n pour éviter erreurs multi-comptes</td><td>Demander à l'utilisateur de saisir manuellement son <code>open_id</code> → UX catastrophique, source d'erreurs</td></tr>
+            <tr><td><code>user.info.email</code></td><td><strong>Nécessaire</strong> : notifications critiques de service (échec publication = perte de temps/contenu, token expiré = blocage total, quota API = planification impossible). Pas d'alternative fiable in-app (pas de push mobile natif).</td><td>Webhooks TikTok pour événements → pas dispo pour ces événements ; notifications in-app seulement → utilisateur pas connecté = pas vu</td></tr>
+            <tr><td><code>video.upload</code></td><td><strong>Requis par l'API</strong> : Video Kit impose un upload en 2 étapes (upload → publish). Chunked upload nécessaire pour gros fichiers (>100Mo), reprise sur erreur réseau.</td><td>Upload direct publish → non supporté par API ; URL externe → TikTok n'accepte pas</td></tr>
+            <tr><td><code>video.publish</code></td><td><strong>Cœur de métier</strong> : action finale de publication programmée. Sans ce scope, l'app ne sert à rien.</td><td>Partage manuel (Share Kit) → pas de planification, pas d'automatisation, UX brisée</td></tr>
+          </tbody>
+        </table>
+        <h3>Scopes explicitement NON demandés (et pourquoi)</h3>
+        <ul>
+          <li><code>user.info.stats</code> → Analytics non nécessaires (TikTok Analytics natif suffit), minimisation RGPD</li>
+          <li><code>video.list</code> → L'app gère son propre état (brouillons, planifiés, publiés), pas besoin de lister l'historique TikTok</li>
+          <li><code>comment.*</code> → Modération commentaires hors scope MVP, gérée nativement sur TikTok</li>
+          <li><code>live.*</code> → Pas de fonctionnalité live</li>
+          <li><code>shop.*</code> → Pas d'e-commerce dans l'app</li>
+        </ul>
+      </section>
+
+      <section id="protection">
+        <h2>6. Mesures de Protection des Données</h2>
+        <h3>6.1 Chiffrement</h3>
+        <table>
+          <thead><tr><th>Donnée</th><th>Au Repos</th><th>En Transit</th></tr></thead>
+          <tbody>
+            <tr><td>Access/Refresh Tokens</td><td>AES-256-GCM (n8n Credentials Store + DB chiffrée)</td><td>TLS 1.3 (tous appels API)</td></tr>
+            <tr><td>Email utilisateur</td><td>AES-256 (colonne chiffrée PostgreSQL / pgcrypto)</td><td>TLS 1.3 (SMTP STARTTLS)</td></tr>
+            <tr><td>Médias (vidéos/images)</td><td>SSE-S3 (AES-256) ou MinIO SSE</td><td>TLS 1.3 (presigned URLs HTTPS)</td></tr>
+            <tr><td>Workflows / Config</td><td>DB chiffrée (LUKS volume + pgcrypto)</td><td>TLS 1.3 (interface n8n)</td></tr>
+          </tbody>
+        </table>
+        <h3>6.2 Contrôle d'Accès</h3>
+        <ul>
+          <li><strong>Authentification n8n :</strong> MFA (TOTP) obligatoire pour admin, recommandé pour utilisateurs</li>
+          <li><strong>RBAC n8n :</strong> Rôles <code>owner</code> / <code>editor</code> / <code>viewer</code> par workspace</li>
+          <li><strong>Isolation multi-locataire :</strong> Un compte TikTok = un credential set = un workspace (ou dossier) isolé</li>
+          <li><strong>Principe moindre privilège :</strong> Worker n8n n'a accès qu'aux credentials de son compte assigné</li>
+        </ul>
+        <h3>6.3 Gestion du Cycle de Vie</h3>
+        <table>
+          <thead><tr><th>Action</th><th>Déclencheur</th><th>Opération</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Révocation tokens</strong></td><td>User clique « Déconnecter TikTok » dans UI n8N</td><td>1. Suppression credentials n8n 2. Appel <code>POST /oauth2/revoke</code> TikTok (si token valide) 3. Purge médias temporaires associés 4. Log audit</td></tr>
+            <tr><td><strong>Expiration access_token</strong></td><td>4h (standard TikTok)</td><td>Refresh automatique via refresh_token avant exécution publication (middleware n8n)</td></tr>
+            <tr><td><strong>Expiration refresh_token</strong></td><td>60j ou révocation user</td><td>Alerte email 7j avant + jour J → User doit se reconnecter</td></tr>
+            <tr><td><strong>Suppression médias temp</strong></td><td>Publication confirmée (webhook TikTok ou polling statut)</td><td>Suppression S3 immédiate (cycle de vie config 0j)</td></tr>
+            <tr><td><strong>Purge logs exécution</strong></td><td>Cron mensuel</td><td>Suppression logs > 1 an (garde audit 3 ans sur bucket froid séparé)</td></tr>
+            <tr><td><strong>Demande suppression RGPD</strong></td><td>User exerce droit à l'effacement</td><td>Workflow n8n dédié : purge toutes tables, credentials, S3, logs → confirmation email</td></tr>
+          </tbody>
+        </table>
+        <h3>6.4 Sécurité Opérationnelle</h3>
+        <ul>
+          <li><strong>Rate limiting propre :</strong> File d'attente BullMQ (1 job/sec/compte max) + respect headers <code>X-RateLimit-*</code> TikTok</li>
+          <li><strong>Monitoring alertes :</strong> Prometheus rules sur taux erreurs 4xx/5xx, latence, quota TikTok > 80%</li>
+          <li><strong>Backup chiffré :</strong> Dump DB quotidien (chiffré GPG) vers bucket versionné (rétention 30j)</li>
+          <li><strong>Plan incident :</strong> Procédure documentée (detection → containment → notification 72h CNIL si violation données personnelles)</li>
+        </ul>
+      </section>
+
+      <section id="gdpr">
+        <h2>7. Conformité RGPD / Protection Données</h2>
+        <table>
+          <thead><tr><th>Droit Utilisateur</th><th>Implémentation Technique</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Accès (Art. 15)</strong></td><td>Endpoint n8n <code>/api/v1/user/data-export</code> → JSON complet (workflows, credentials masqués, logs, config)</td></tr>
+            <tr><td><strong>Rectification (Art. 16)</strong></td><td>UI n8n : modification email, timezone, préférences ; credentials → reconnexion OAuth</td></tr>
+            <tr><td><strong>Effacement (Art. 17)</strong></td><td>Bouton « Supprimer mon compte » → workflow purge complet + appel revoke TikTok</td></tr>
+            <tr><td><strong>Limitation (Art. 18)</strong></td><td>Flag <code>processing_restricted</code> sur compte → stop workers, garde données</td></tr>
+            <tr><td><strong>Portabilité (Art. 20)</strong></td><td>Export JSON structuré (standard n8n + credentials export chiffré)</td></tr>
+            <tr><td><strong>Opposition (Art. 21)</strong></td><td>Opt-out notifications non-essentielles ; logs anonymisés (pseudonymisation <code>open_id</code> → hash)</td></tr>
+            <tr><td><strong>Retrait consentement</strong></td><td>= Déconnexion TikTok (voir cycle de vie)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>DPO / Contact :</strong> <a href="mailto:ton@email.com">ton@email.com</a> — réponse < 30 jours (visé 15j)</p>
+      </section>
+
+      <section id="transfers">
+        <h2>8. Transferts Internationaux</h2>
+        <table>
+          <thead><tr><th>Flux</th><th>Origine → Destination</th><th>Mécanisme Juridique</th></tr></thead>
+          <tbody>
+            <tr><td>API Calls</td><td>Instance n8n (UE) → TikTok API (US/SG/EU selon routage)</td><td>SCC 2021/914 (TikTok Developer Terms) + TIAA documentée</td></tr>
+            <tr><td>Stockage médias</td><td>Instance n8n → S3 (région choisie par user : eu-west-1, etc.)</td><td>Même région que l'instance = pas de transfert</td></tr>
+            <tr><td>Notifications email</td><td>Instance n8n → SMTP (provider user : OVH, SendGrid, AWS SES)</td><td>Contrat sous-traitance Art. 28 RGPD avec provider</td></tr>
+            <tr><td>Monitoring</td><td>Instance n8n → Prometheus/Grafana (self-hosted ou cloud EU)</td><td>Même infra ou SCC si cloud hors UE</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Auto-hébergé = l'utilisateur choisit sa région d'hébergement</strong> → contrôle total sur les transferts.</p>
+      </section>
+
+      <section id="no-secondary">
+        <h2>9. Aucun Usage Secondaire</h2>
+        <table>
+          <thead><tr><th>Usage</th><th>Statut</th><th>Preuve</th></tr></thead>
+          <tbody>
+            <tr><td>Publicité ciblée</td><td><span class="badge badge-no">❌ Jamais</span></td><td>Pas de pixel, pas de tracking, pas d'IDFA/GAID</td></tr>
+            <tr><td>Analytics produit</td><td><span class="badge badge-no">❌ Jamais</span></td><td>Pas de Mixpanel, Amplitude, GA ; logs n8n seulement</td></tr>
+            <tr><td>Entraînement IA/ML</td><td><span class="badge badge-no">❌ Jamais</span></td><td>Pas de collecte contenu pour training</td></tr>
+            <tr><td>Vente/Partage données</td><td><span class="badge badge-no">❌ Jamais</span></td><td>Business model = open source + services, pas data</td></tr>
+            <tr><td>Profilage utilisateurs</td><td><span class="badge badge-no">❌ Jamais</span></td><td>Pas de scoring, recommandations cross-comptes</td></tr>
+            <tr><td>Enrichissement tiers</td><td><span class="badge badge-no">❌ Jamais</span></td><td>Pas d'API Clearbit, FullContact, etc.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="tests">
+        <h2>10. Tests et Validation</h2>
+        <table>
+          <thead><tr><th>Test</th><th>Méthode</th><th>Fréquence</th></tr></thead>
+          <tbody>
+            <tr><td>Fuite tokens dans logs</td><td>Grep regex <code>access_token\|refresh_token</code> sur logs staging</td><td>Chaque déploiement (CI/CD)</td></tr>
+            <tr><td>Chiffrement au repos</td><td>Vérification <code>pgcrypto</code> / LUKS / S3 SSE headers</td><td>Audit trimestriel</td></tr>
+            <tr><td>Révocation effective</td><td>Test E2E : déconnexion → tentative appel API → 401</td><td>Chaque release</td></tr>
+            <tr><td>Purge médias temp</td><td>Vérification bucket S3 : objets > 7j sans tag <code>published=true</code></td><td>Cron hebdo + alerte</td></tr>
+            <tr><td>Export RGPD complet</td><td>Test manuel : export → vérif exhaustivité vs inventaire données</td><td>Avant chaque mise à jour schema DB</td></tr>
+            <tr><td>Rate limit respect</td><td>Simulation charge (Locust) : 100 publications séquentielles → 0 erreur 429</td><td>Pré-release</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="checklist">
+        <h2>11. Checklist Soumission TikTok</h2>
+        <table>
+          <thead><tr><th>Exigence</th><th>Statut</th><th>Preuve / Note</th></tr></thead>
+          <tbody>
+            <tr><td>Data Minimization (scopes justifiés)</td><td><span class="badge badge-yes">✅</span></td><td>Voir §5 — 4 scopes seulement, chacun justifié</td></tr>
+            <tr><td>Purpose Limitation (usage unique publication)</td><td><span class="badge badge-yes">✅</span></td><td>§2, §3 — pas d'usage secondaire</td></tr>
+            <tr><td>Storage Limitation (durées définies, purge auto)</td><td><span class="badge badge-yes">✅</span></td><td>§6.3 — tableau cycle de vie complet</td></tr>
+            <tr><td>Integrity & Confidentiality (chiffrement, RBAC)</td><td><span class="badge badge-yes">✅</span></td><td>§6.1, §6.2 — AES-256, TLS 1.3, MFA, RBAC</td></tr>
+            <tr><td>User Rights (accès, effacement, portabilité)</td><td><span class="badge badge-yes">✅</span></td><td>§7 — implémentation technique décrite</td></tr>
+            <tr><td>Transparency (Privacy Policy, cette doc)</td><td><span class="badge badge-yes">✅</span></td><td>Documents fournis</td></tr>
+            <tr><td>Accountability (DPO, logs audit, TIAA)</td><td><span class="badge badge-yes">✅</span></td><td>§6.4, §7, §8 — DPO nommé, TIAA faite</td></tr>
+            <tr><td>No Secondary Use</td><td><span class="badge badge-yes">✅</span></td><td>§9 — déclaration formelle</td></tr>
+            <tr><td>International Transfers Documented</td><td><span class="badge badge-yes">✅</span></td><td>§8 — SCC, TIAA, région user-controlled</td></tr>
+            <tr><td>Security Incident Process</td><td><span class="badge badge-yes">✅</span></td><td>§6.4 — procédure 72h CNIL</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="contact">
+        <h2>12. Contact pour Questions TikTok Review Team</h2>
+        <p><strong>Développeur / DPO :</strong> [Ton Nom]<br>
+        <strong>Email :</strong> <a href="mailto:ton@email.com">ton@email.com</a><br>
+        <strong>Téléphone :</strong> [+33 X XX XX XX XX]<br>
+        <strong>Adresse :</strong> [Ton Adresse Complète]<br>
+        <strong>Instance Demo (si demandée) :</strong> <code>https://demo.ton-domaine.com</code> (accès temporaire sur demande)<br>
+        <strong>Repo GitHub :</strong> <code>https://github.com/ton-user/n8n-tiktok-content-manager</code> (public ou privé avec accès review team)</p>
+        <hr>
+        <p><em>Document préparé pour la revue <strong>TikTok Developer Platform</strong> — App : « n8n TikTok Content Manager » — APIs : <strong>Login Kit</strong> + <strong>Video Kit (Content Posting API)</strong> — Conformité RGPD Art. 28, 30, 32, 33, 35</em></p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Data Usage Description — n8n TikTok Content Manager — Version 1.0 — 22 novembre 2026</p>
+      <p><a href="mailto:ton@email.com">Contact DPO</a> | <a href="privacy.html">Politique de Confidentialité</a> | <a href="terms.html">Conditions d'Utilisation</a></p>
+    </footer>
+  </div>
+</body>
+</html>

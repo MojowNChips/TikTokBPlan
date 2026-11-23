@@ -49,7 +49,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Parse analyzer output\nconst output = $json.stdout;\nconst clips = JSON.parse(output);\n\n// Filter by score threshold\nconst THRESHOLD = 65;\nconst approved = clips.filter(c => c.score >= THRESHOLD);\n\nreturn approved.map(clip => ({\n  ...clip,\n  vod_id: $json.vod_id,\n  streamer: $json.streamer,\n  status: 'pending_review'\n}));"
+        "functionCode": "// Parse analyzer output with error handling\nlet clips;\ntry {\n  clips = JSON.parse($json.stdout || \"[]\");\n} catch (e) {\n  return [{ error: 'Analyzer output not valid JSON', detail: e.message, stdout: $json.stdout }];\n}\n\n// Filter by score threshold\nconst THRESHOLD = 65;\nconst approved = clips.filter(c => c && c.score >= THRESHOLD);\n\nreturn approved.map(clip => ({\n  ...clip,\n  vod_id: $json.vod_id,\n  streamer: $json.streamer,\n  status: 'pending_review'\n}));"
       },
       "id": "parse-results",
       "name": "Parse & Filter Results",
@@ -173,7 +173,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   }

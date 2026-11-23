@@ -58,7 +58,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Generate caption with hashtags\nconst { streamer, game, title, reason, clip_id } = $json;\n\nconst pillarHashtags = {\n  'Insane Plays': '#clutch #outplay #insane #gamingclips #proplay',\n  'Funny Moments': '#funny #fail #ragemoment #gamingfunny #lol',\n  'Reactions': '#reaction #streamer #gamingreaction #priceless',\n  'Tips': '#gamingtips #howto #protip #improve #guide'\n};\n\n// Determine pillar from reason/title\nlet pillar = 'Insane Plays';\nconst text = (title + ' ' + reason).toLowerCase();\nif (text.includes('funny') || text.includes('fail') || text.includes('lol')) pillar = 'Funny Moments';\nelse if (text.includes('react') || text.includes('wtf') || text.includes('omg')) pillar = 'Reactions';\nelse if (text.includes('tip') || text.includes('how') || text.includes('guide')) pillar = 'Tips';\n\nconst hashtags = pillarHashtags[pillar] || pillarHashtags['Insane Plays'];\n\nconst caption = `${title}\n\n${reason}\n\nStreamer: @${streamer}\nGame: ${game}\n\n${hashtags} #${game.replace(/\\s+/g, '')} #${streamer} #fyp #gaming`;\n\nreturn { ...$json, caption, pillar };"
+        "functionCode": "// Generate caption with hashtags\nconst { streamer, game, title, reason, clip_id, file_size_mb } = $json;\n\nconst pillarHashtags = {\n  'Insane Plays': '#clutch #outplay #insane #gamingclips #proplay',\n  'Funny Moments': '#funny #fail #ragemoment #gamingfunny #lol',\n  'Reactions': '#reaction #streamer #gamingreaction #priceless',\n  'Tips': '#gamingtips #howto #protip #improve #guide'\n};\n\n// Determine pillar from reason/title\nlet pillar = 'Insane Plays';\nconst text = (title + ' ' + reason).toLowerCase();\nif (text.includes('funny') || text.includes('fail') || text.includes('lol')) pillar = 'Funny Moments';\nelse if (text.includes('react') || text.includes('wtf') || text.includes('omg')) pillar = 'Reactions';\nelse if (text.includes('tip') || text.includes('how') || text.includes('guide')) pillar = 'Tips';\n\nconst hashtags = pillarHashtags[pillar] || pillarHashtags['Insane Plays'];\n\nconst caption = `${title}\n\n${reason}\n\nStreamer: @${streamer}\nGame: ${game}\n\n${hashtags} #${game.replace(/\\s+/g, '')} #${streamer} #fyp #gaming`;\n\nconst fileSizeBytes = Math.round((file_size_mb || 0) * 1024 * 1024);\nconst chunkSize = 10485760; // 10 MB\nconst totalChunkCount = Math.max(1, Math.ceil(fileSizeBytes / chunkSize));\n\nreturn { ...$json, caption, pillar, file_size_bytes: fileSizeBytes, chunk_size: chunkSize, total_chunk_count: totalChunkCount };"
       },
       "id": "generate-caption",
       "name": "Generate Caption & Hashtags",
@@ -73,7 +73,7 @@
         "options": {},
         "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.TIKTOK_ACCESS_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}",
         "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"post_info\": {\n    \"title\": \"{{$json.caption}}\",\n    \"privacy_level\": \"PUBLIC\",\n    \"disable_duet\": false,\n    \"disable_stitch\": false,\n    \"disable_comment\": false\n  },\n  \"source_info\": {\n    \"source\": \"FILE_UPLOAD\",\n    \"video_size\": \"{{$json.file_size_mb * 1024 * 1024}}\",\n    \"chunk_size\": 10485760,\n    \"total_chunk_count\": 1\n  }\n}"
+        "bodyParametersJson": "{\n  \"post_info\": {\n    \"title\": \"{{$json.caption}}\",\n    \"privacy_level\": \"PUBLIC\",\n    \"disable_duet\": false,\n    \"disable_stitch\": false,\n    \"disable_comment\": false\n  },\n  \"source_info\": {\n    \"source\": \"FILE_UPLOAD\",\n    \"video_size\": \"{{$json.file_size_bytes}}\",\n    \"chunk_size\": \"{{$json.chunk_size}}\",\n    \"total_chunk_count\": \"{{$json.total_chunk_count}}\"\n  }\n}"
       },
       "id": "tiktok-init",
       "name": "TikTok Init Upload",
@@ -83,7 +83,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Upload video file to TikTok upload URL\nconst { upload_url, video_path } = $json;\n\n// This requires multipart upload - simplified\n// In practice, use the upload_url from init response\nconst fs = require('fs');\nconst videoBuffer = fs.readFileSync(video_path);\n\nreturn {\n  ...$json,\n  video_buffer: videoBuffer\n};"
+        "functionCode": "// Prepare video file for upload; carry publish_id and upload_url forward\nconst data = $json.data || $json;\nconst { video_path: vp, publish_id, upload_url } = data;\n\nconst fs = require('fs');\nif (!fs.existsSync(vp)) {\n  throw new Error('Video file not found: ' + vp);\n}\n\nconst stats = fs.statSync(vp);\nconst fileSizeBytes = stats.size; // actual bytes on disk\n\nreturn {\n  ...$json,\n  video_path: vp,\n  publish_id,\n  upload_url,\n  file_size_bytes,\n};\n"
       },
       "id": "prepare-upload",
       "name": "Prepare Video Upload",
@@ -93,16 +93,15 @@
     },
     {
       "parameters": {
-        "url": "={{$json.upload_url}}",
-        "method": "PUT",
-        "options": {},
-        "headerParametersJson": "{\n  \"Content-Type\": \"video/mp4\",\n  \"Content-Range\": \"bytes 0-{{$json.file_size_mb * 1024 * 1024 - 1}}/{{$json.file_size_mb * 1024 * 1024}}\"\n}",
-        "binaryPropertyName": "video_buffer"
+        "command": "=python3 /scripts/upload_tiktok.py \"{{$json.video_path}}\" \"{{$json.upload_url}}\" \"{{$json.publish_id}}\"",
+        "options": {
+          "cwd": "/scripts"
+        }
       },
       "id": "tiktok-upload",
       "name": "Upload Video to TikTok",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
       "position": [2000, 300]
     },
     {
@@ -334,7 +333,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   }

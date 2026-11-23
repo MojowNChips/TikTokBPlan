@@ -38,7 +38,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Get posts from last 7 days that need updating\nconst rows = $json.values || [];\nconst cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);\n\nconst toUpdate = [];\nfor (let i = 0; i < rows.length; i++) {\n  const row = rows[i];\n  const postedDate = new Date(row[0]);\n  const publishId = row[5];\n  const status = row[6];\n  \n  if (postedDate >= cutoff && status === 'posted' && publishId) {\n    toUpdate.push({ rowIndex: i + 2, publishId });\n  }\n}\n\nreturn toUpdate;"
+        "functionCode": "// Get posts from last 7 days that need updating\nconst rows = $json.values || [];\nconst cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);\n\nconst toUpdate = [];\nfor (let i = 0; i < rows.length; i++) {\n  const row = rows[i];\n  const postedDate = new Date(row[0]);\n  const publishId = row[5];\n  const status = row[6];\n  \n  if (postedDate >= cutoff && status === 'posted' && publishId) {\n    toUpdate.push({ rowIndex: i + 2, publishId, postedDate: row[0] });\n  }\n}\n\nreturn toUpdate;"
       },
       "id": "filter-recent",
       "name": "Filter Recent Posts",
@@ -63,7 +63,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Parse TikTok response and prepare sheet update\nconst data = $json.data?.videos?.[0];\nif (!data) return { error: 'No data' };\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: `Analytics!F${$json.rowIndex}:H${$json.rowIndex}`,\n  values: [[\n    data.publish_id,\n    'updated',\n    data.statistics?.view_count || 0,\n    data.statistics?.like_count || 0,\n    data.statistics?.comment_count || 0,\n    data.statistics?.share_count || 0,\n    data.statistics?.collect_count || 0\n  ]]\n};"
+        "functionCode": "// Parse TikTok response and prepare sheet update\n// Access upstream Filter Recent Posts node output for rowIndex/postedDate\nconst upstream = $nodes[\"Filter Recent Posts\"].json[$itemIndex] || {};\nconst rowIndex = upstream.rowIndex;\nconst postedDate = upstream.postedDate;\n\nconst data = $json.data?.videos?.[0];\nif (!data) return { error: 'No data', rowIndex };\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: `Analytics!F${rowIndex}:H${rowIndex}`,\n  values: [[\n    data.publish_id,\n    'updated',\n    data.statistics?.view_count || 0,\n    data.statistics?.like_count || 0,\n    data.statistics?.comment_count || 0,\n    data.statistics?.share_count || 0,\n    data.statistics?.collect_count || 0\n  ]]\n};"
       },
       "id": "parse-stats",
       "name": "Parse Statistics",
@@ -91,7 +91,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Check for viral clips (views > 10k in first hour, or > 100k total)\nconst data = $json.data?.videos?.[0];\nif (!data) return null;\n\nconst views = data.statistics?.view_count || 0;\nconst postedDate = new Date($json.postedDate);\nconst hoursSince = (Date.now() - postedDate.getTime()) / (1000 * 60 * 60);\n\nconst isViral = (hoursSince <= 1 && views >= 10000) || views >= 100000;\n\nif (isViral) {\n  return {\n    content: `🚨 **VIRAL ALERT**\\n**Clip:** ${data.video_id}\\n**Views:** ${views.toLocaleString()}\\n**Hours since post:** ${hoursSince.toFixed(1)}\\n**Likes:** ${data.statistics?.like_count || 0}\\n**Shares:** ${data.statistics?.share_count || 0}\\n\\nConsider boosting similar content!`,\n    username: 'Analytics Bot'\n  };\n}\nreturn null;"
+        "functionCode": "// Check for viral clips (views > 10k in first hour, or > 100k total)\nconst upstream = $nodes[\"Filter Recent Posts\"].json[$itemIndex] || {};\nconst postedDate = upstream.postedDate;\nconst data = $json.data?.videos?.[0];\nif (!data) return null;\n\nconst views = data.statistics?.view_count || 0;\nconst hoursSince = postedDate ? (Date.now() - new Date(postedDate).getTime()) / (1000 * 60 * 60) : 0;\n\nconst isViral = (hoursSince <= 1 && views >= 10000) || views >= 100000;\n\nif (isViral) {\n  return {\n    content: `🚨 **VIRAL ALERT**\\n**Clip:** ${data.video_id}\\n**Views:** ${views.toLocaleString()}\\n**Hours since post:** ${hoursSince.toFixed(1)}\\n**Likes:** ${data.statistics?.like_count || 0}\\n**Shares:** ${data.statistics?.share_count || 0}\\n\\nConsider boosting similar content!`,\n    username: 'Analytics Bot'\n  };\n}\nreturn null;"
       },
       "id": "check-viral",
       "name": "Check Viral Threshold",
@@ -187,7 +187,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   }

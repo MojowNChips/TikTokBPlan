@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Politique de confidentialité - n8n TikTok Content Manager">
+  <title>Politique de Confidentialité — n8n TikTok Content Manager</title>
+  <style>
+    :root {
+      --color-bg: #fafafa;
+      --color-surface: #ffffff;
+      --color-text: #1a1a2e;
+      --color-text-muted: #4a4a6a;
+      --color-primary: #ea5b0c;
+      --color-primary-hover: #d44e0a;
+      --color-border: #e0e0e0;
+      --color-code-bg: #f5f5f5;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+      --max-width: 800px;
+      --spacing: 1.5rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f0f1a;
+        --color-surface: #1a1a2e;
+        --color-text: #f0f0f5;
+        --color-text-muted: #a0a0b0;
+        --color-border: #2a2a4a;
+        --color-code-bg: #151525;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      line-height: 1.7;
+      color: var(--color-text);
+      background: var(--color-bg);
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      background: var(--color-surface);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 3rem;
+      border: 1px solid var(--color-border);
+    }
+    header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); }
+    h1 { font-size: 2rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.5rem; }
+    .meta { font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.8; }
+    .meta strong { color: var(--color-text); }
+    nav.toc { margin: 2rem 0; padding: 1.5rem; background: var(--color-code-bg); border-radius: 8px; border: 1px solid var(--color-border); }
+    nav.toc h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--color-primary); }
+    nav.toc ul { list-style: none; columns: 2; column-gap: 2rem; }
+    nav.toc li { margin: 0.4rem 0; }
+    nav.toc a { color: var(--color-text); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    nav.toc a:hover { color: var(--color-primary); text-decoration: underline; }
+    @media (max-width: 600px) { nav.toc ul { columns: 1; } }
+    main h2 { font-size: 1.5rem; font-weight: 600; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-primary); color: var(--color-text); }
+    main h3 { font-size: 1.2rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--color-text); }
+    main h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--color-text-muted); }
+    main p { margin: 1rem 0; }
+    main ul, main ol { margin: 1rem 0 1rem 1.5rem; }
+    main li { margin: 0.5rem 0; }
+    main strong { font-weight: 600; }
+    main code { font-family: var(--font-mono); font-size: 0.9em; background: var(--color-code-bg); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--color-primary); }
+    main pre { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1.5rem 0; }
+    main pre code { background: none; padding: 0; color: var(--color-text); font-size: 0.85rem; line-height: 1.6; }
+    main table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+    main th, main td { padding: 0.75rem 1rem; border: 1px solid var(--color-border); text-align: left; }
+    main th { background: var(--color-code-bg); font-weight: 600; color: var(--color-text); }
+    main tr:nth-child(even) td { background: var(--color-code-bg); }
+    main blockquote { border-left: 4px solid var(--color-primary); padding-left: 1rem; margin: 1.5rem 0; color: var(--color-text-muted); font-style: italic; }
+    main hr { border: none; border-top: 1px solid var(--color-border); margin: 2rem 0; }
+    .checklist { list-style: none; }
+    .checklist li { padding-left: 1.5rem; position: relative; margin: 0.5rem 0; }
+    .checklist li::before { content: "✅"; position: absolute; left: 0; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; }
+    .badge-yes { background: #d4edda; color: #155724; }
+    .badge-no { background: #f8d7da; color: #721c24; }
+    .badge-wip { background: #fff3cd; color: #856404; }
+    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 0.9rem; text-align: center; }
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .skip-link { position: absolute; top: -100%; left: 50%; transform: translateX(-50%); background: var(--color-primary); color: white; padding: 0.5rem 1rem; border-radius: 4px; z-index: 100; }
+    .skip-link:focus { top: 1rem; }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      nav.toc { display: none; }
+      main h2 { page-break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+  <div class="container">
+    <header>
+      <h1>Politique de Confidentialité</h1>
+      <div class="meta">
+        <strong>Application :</strong> n8n TikTok Content Manager<br>
+        <strong>Dernière mise à jour :</strong> 22 novembre 2026<br>
+        <strong>Version :</strong> 1.0<br>
+        <strong>Éditeur :</strong> [Ton Nom / Nom de ton entreprise]<br>
+        <strong>Contact RGPD / DPO :</strong> <a href="mailto:ton@email.com">ton@email.com</a>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="Table des matières">
+      <h2>Sommaire</h2>
+      <ul>
+        <li><a href="#objet">1. Objet et Champ d'Application</a></li>
+        <li><a href="#responsable">2. Responsable de Traitement</a></li>
+        <li><a href="#donnees">3. Données Collectées</a></li>
+        <li><a href="#finalites">4. Finalités du Traitement</a></li>
+        <li><a href="#partage">5. Partage des Données</a></li>
+        <li><a href="#securite">6. Sécurité</a></li>
+        <li><a href="#droits">7. Droits des Utilisateurs (RGPD Art. 15-22)</a></li>
+        <li><a href="#duree">8. Durée de Conservation</a></li>
+        <li><a href="#cookies">9. Cookies et Traceurs</a></li>
+        <li><a href="#mineurs">10. Mineurs</a></li>
+        <li><a href="#modifications">11. Modifications de cette Politique</a></li>
+        <li><a href="#contact">12. Contact</a></li>
+        <li><a href="#annexe">Annexe : Scopes TikTok Demandés</a></li>
+      </ul>
+    </nav>
+
+    <main id="main-content">
+      <section id="objet">
+        <h2>1. Objet et Champ d'Application</h2>
+        <p>Cette politique de confidentialité décrit comment l'application <strong>« n8n TikTok Content Manager »</strong> (ci-après « l'Application », « nous », « notre ») collecte, utilise, stocke et protège les données personnelles des utilisateurs qui s'authentifient via <strong>TikTok Login Kit</strong> et autorisent l'Application à publier du contenu via <strong>TikTok Video Kit / Content Posting API</strong>.</p>
+        <p>L'Application est un workflow n8n auto-hébergé permettant aux créateurs de contenu et gestionnaires de médias sociaux de :</p>
+        <ul>
+          <li>S'authentifier sécurisément via OAuth 2.0 (TikTok Login Kit)</li>
+          <li>Programmer et publier des vidéos/photos sur leur compte TikTok (Video Kit)</li>
+          <li>Gérer leurs brouillons et contenus planifiés</li>
+        </ul>
+      </section>
+
+      <section id="responsable">
+        <h2>2. Responsable de Traitement</h2>
+        <p><strong>Responsable :</strong> [Ton Nom / Raison Sociale]<br>
+        <strong>Adresse :</strong> [Ton Adresse Complète]<br>
+        <strong>Email DPO / Contact RGPD :</strong> <a href="mailto:ton@email.com">ton@email.com</a><br>
+        <strong>Représentant UE (si hors UE) :</strong> [le cas échéant]</p>
+      </section>
+
+      <section id="donnees">
+        <h2>3. Données Collectées</h2>
+        <h3>3.1 Données reçues de TikTok (via OAuth)</h3>
+        <p>Lors de l'autorisation via <strong>TikTok Login Kit</strong>, nous recevons les champs suivants (selon les scopes demandés) :</p>
+        <table>
+          <thead>
+            <tr><th>Donnée</th><th>Source</th><th>Finalité</th><th>Base Légale</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>open_id</code></td><td>TikTok Login Kit</td><td>Identifiant unique utilisateur TikTok</td><td>Consentement (Art. 6.1.a RGPD)</td></tr>
+            <tr><td><code>union_id</code></td><td>TikTok Login Kit</td><td>Identifiant unifié cross-app (si même propriétaire)</td><td>Consentement</td></tr>
+            <tr><td><code>avatar_url</code></td><td>TikTok Login Kit</td><td>Photo de profil pour affichage dans l'app</td><td>Consentement</td></tr>
+            <tr><td><code>display_name</code></td><td>TikTok Login Kit</td><td>Nom d'affichage pour identification</td><td>Consentement</td></tr>
+            <tr><td><code>email</code> (si scope <code>user.info.email</code>)</td><td>TikTok Login Kit</td><td>Contact utilisateur, notifications</td><td>Consentement</td></tr>
+            <tr><td><code>profile_deep_link</code></td><td>TikTok Login Kit</td><td>Lien vers profil TikTok</td><td>Consentement</td></tr>
+          </tbody>
+        </table>
+
+        <h3>3.2 Données générées par l'Application</h3>
+        <table>
+          <thead>
+            <tr><th>Donnée</th><th>Description</th><th>Finalité</th><th>Base Légale</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Access Token TikTok (chiffré)</td><td>Token OAuth courte durée (4h)</td><td>Appels API Video Kit pour publication</td><td>Exécution contrat (Art. 6.1.b)</td></tr>
+            <tr><td>Refresh Token TikTok (chiffré)</td><td>Token longue durée (60j ou jusqu'à révocation)</td><td>Renouvellement automatique access token</td><td>Exécution contrat</td></tr>
+            <tr><td>Workflows n8n créés</td><td>Configurations de publication (horaires, légendes, médias)</td><td>Fonctionnement du service</td><td>Exécution contrat</td></tr>
+            <tr><td>Logs d'exécution (horodatés)</td><td>Historique publications, erreurs, statuts</td><td>Débogage, audit, amélioration</td><td>Intérêt légitime (Art. 6.1.f)</td></tr>
+            <tr><td>Métadonnées médias (titre, description, hashtags)</td><td>Contenu préparé pour publication</td><td>Préparation et envoi à TikTok</td><td>Exécution contrat</td></tr>
+          </tbody>
+        </table>
+
+        <h3>3.3 Données <strong>NON</strong> collectées</h3>
+        <ul class="checklist">
+          <li>Mots de passe TikTok (authentification déléguée à TikTok via OAuth)</li>
+          <li>Données bancaires / paiement</li>
+          <li>Localisation précise (GPS)</li>
+          <li>Contacts / carnet d'adresses</li>
+          <li>Contenu des messages privés TikTok</li>
+          <li>Données de navigation hors de l'Application</li>
+        </ul>
+      </section>
+
+      <section id="finalites">
+        <h2>4. Finalités du Traitement</h2>
+        <table>
+          <thead>
+            <tr><th>Finalité</th><th>Description</th><th>Base Légale</th><th>Durée Conservation</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Authentification utilisateur</td><td>Connexion via TikTok OAuth, identification session</td><td>Consentement</td><td>Durée de la session + 30j inactivité</td></tr>
+            <tr><td>Publication contenu</td><td>Envoi vidéos/photos vers TikTok via Video Kit</td><td>Exécution contrat</td><td>Durée de vie du workflow + 90j</td></tr>
+            <tr><td>Gestion brouillons / planification</td><td>Stockage temporaire médias, légendes, horaires</td><td>Exécution contrat</td><td>Jusqu'à publication ou suppression user</td></tr>
+            <tr><td>Notifications statut</td><td>Succès/échec publication, expiration token</td><td>Exécution contrat / Intérêt légitime</td><td>90 jours</td></tr>
+            <tr><td>Sécurité / Audit</td><td>Logs d'accès, détection abus, conformité API</td><td>Intérêt légitime / Obligation légale</td><td>1 an (logs), 3 ans (audit)</td></tr>
+            <tr><td>Support utilisateur</td><td>Réponse demandes, dépannage</td><td>Intérêt légitime</td><td>Durée du ticket + 1 an</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="partage">
+        <h2>5. Partage des Données</h2>
+        <h3>5.1 Destinataires</h3>
+        <table>
+          <thead>
+            <tr><th>Destinataire</th><th>Données Partagées</th><th>Finalité</th><th>Localisation</th><th>Garanties</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>TikTok / ByteDance</strong></td><td>Access token, refresh token, contenu à publier (vidéo, métadonnées)</td><td>Publication via API Video Kit, validation token</td><td>Selon infrastructure TikTok (US, SG, EU)</td><td>Contrat API TikTok, SCC le cas échéant</td></tr>
+            <tr><td><strong>Hébergeur n8n (self-hosted)</strong></td><td>Toutes données applicatives</td><td>Exécution technique</td><td>[Ton serveur / Cloud provider]</td><td>Contrat sous-traitance (Art. 28 RGPD)</td></tr>
+            <tr><td><strong>Autorités compétentes</strong></td><td>Données nécessaires</td><td>Obligation légale, réquisition judiciaire</td><td>UE</td><td>Base légale</td></tr>
+          </tbody>
+        </table>
+
+        <h3>5.2 Transferts Hors UE</h3>
+        <p>Si ton instance n8n est hébergée hors UE ou si TikTok traite des données hors UE :</p>
+        <ul>
+          <li><strong>Mécanisme :</strong> Clauses Contractuelles Types (SCC) 2021/914 + mesures supplémentaires (chiffrement, pseudonymisation)</li>
+          <li><strong>Évaluation d'impact (TIAA) :</strong> Réalisée et documentée</li>
+        </ul>
+      </section>
+
+      <section id="securite">
+        <h2>6. Sécurité</h2>
+        <h3>6.1 Mesures Techniques</h3>
+        <ul>
+          <li><strong>Chiffrement au repos :</strong> AES-256 pour tokens OAuth, base de données n8n chiffrée</li>
+          <li><strong>Chiffrement en transit :</strong> TLS 1.3 minimum pour tous les appels API (TikTok, n8n, frontend)</li>
+          <li><strong>Gestion secrets :</strong> Variables d'environnement / vault (pas de secrets en dur dans le code)</li>
+          <li><strong>Rotation tokens :</strong> Refresh token utilisé pour obtenir nouvel access token ; ancien révoqué</li>
+          <li><strong>Révocation :</strong> Déconnexion utilisateur = suppression immédiate tokens côté app + appel <code>revoke</code> TikTok si dispo</li>
+        </ul>
+        <h3>6.2 Mesures Organisationnelles</h3>
+        <ul>
+          <li>Accès restreint aux logs (besoin d'en connaître)</li>
+          <li>Procédure de réponse incident sécurité (72h notification CNIL si violation)</li>
+          <li>Revue annuelle des accès et permissions</li>
+          <li>Formation RGPD pour mainteneurs</li>
+        </ul>
+      </section>
+
+      <section id="droits">
+        <h2>7. Droits des Utilisateurs (RGPD Art. 15-22)</h2>
+        <table>
+          <thead>
+            <tr><th>Droit</th><th>Comment l'exercer</th><th>Délai</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Accès</td><td>Demande email → export JSON de toutes données</td><td>1 mois</td></tr>
+            <tr><td>Rectification</td><td>Modification via interface n8n ou demande email</td><td>1 mois</td></tr>
+            <tr><td>Effacement (« droit à l'oubli »)</td><td>Bouton « Supprimer mon compte » dans l'app ou email</td><td>1 mois</td></tr>
+            <tr><td>Limitation</td><td>Demande email (ex: contestation exactitude)</td><td>1 mois</td></tr>
+            <tr><td>Portabilité</td><td>Export JSON structuré (tokens exclus pour sécurité)</td><td>1 mois</td></tr>
+            <tr><td>Opposition</td><td>Email pour traitement intérêt légitime (logs, analytics)</td><td>1 mois</td></tr>
+            <tr><td>Retrait consentement</td><td>Déconnexion TikTok dans l'app = suppression tokens</td><td>Immédiat</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Contact exercice droits :</strong> <a href="mailto:ton@email.com">ton@email.com</a><br>
+        <strong>Réclamation CNIL :</strong> <a href="https://www.cnil.fr/fr/plainte" target="_blank" rel="noopener">https://www.cnil.fr/fr/plainte</a></p>
+      </section>
+
+      <section id="duree">
+        <h2>8. Durée de Conservation</h2>
+        <table>
+          <thead>
+            <tr><th>Catégorie</th><th>Durée</th><th>Justification</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Tokens OAuth (chiffrés)</td><td>Durée autorisation + 30j après révocation</td><td>Renouvellement, sécurité</td></tr>
+            <tr><td>Workflows / Contenu programmé</td><td>Jusqu'à publication + 90j</td><td>Historique, reprise erreur</td></tr>
+            <tr><td>Logs d'exécution / audit</td><td>1 an (logs) / 3 ans (audit)</td><td>Sécurité, conformité, debugging</td></tr>
+            <tr><td>Données profil (open_id, display_name, avatar)</td><td>Durée compte actif + 30j après suppression</td><td>Identification, support</td></tr>
+            <tr><td>Demandes exercice droits</td><td>3 ans</td><td>Preuve conformité</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Suppression automatique :</strong> Script cron mensuel purge données expirées.</p>
+      </section>
+
+      <section id="cookies">
+        <h2>9. Cookies et Traceurs</h2>
+        <p>L'Application n8n <strong>n'utilise pas de cookies</strong> tiers ni de traceurs publicitaires.</p>
+        <ul>
+          <li>Session n8n : cookie strictement nécessaire (technique, exempté consentement)</li>
+          <li>Aucun pixel, analytics tiers, fingerprinting</li>
+        </ul>
+      </section>
+
+      <section id="mineurs">
+        <h2>10. Mineurs</h2>
+        <p>L'Application n'est <strong>pas destinée aux mineurs de moins de 13 ans</strong> (ou 16 ans selon juridiction).</p>
+        <ul>
+          <li>TikTok impose 13+ pour créer un compte</li>
+          <li>Nous ne collectons pas sciemment de données de mineurs</li>
+          <li>Si découvert : suppression immédiate + notification autorité</li>
+        </ul>
+      </section>
+
+      <section id="modifications">
+        <h2>11. Modifications de cette Politique</h2>
+        <p>Toute modification substantielle :</p>
+        <ul>
+          <li>Notification par email 30 jours avant entrée en vigueur</li>
+          <li>Affichage dans l'interface n8n (bannière)</li>
+          <li>Version historique archivée et accessible</li>
+        </ul>
+        <p><strong>Historique versions :</strong></p>
+        <ul>
+          <li>v1.0 (22/11/2026) : Création initiale pour soumission TikTok API</li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>12. Contact</h2>
+        <p><strong>Délégué à la Protection des Données (DPO) / Contact RGPD :</strong><br>
+        📧 <a href="mailto:ton@email.com">ton@email.com</a><br>
+        📮 [Ton Adresse Postale Complète]</p>
+        <p><strong>Pour les utilisateurs TikTok :</strong> Vous pouvez aussi révoquer l'accès directement depuis les paramètres TikTok > Sécurité > Applications autorisées.</p>
+      </section>
+
+      <section id="annexe">
+        <h2>Annexe : Scopes TikTok Demandés et Justification</h2>
+        <table>
+          <thead>
+            <tr><th>Scope</th><th>Nom Affiché</th><th>Justification</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>user.info.basic</code></td><td>Profil basique (open_id, union_id, avatar, display_name)</td><td>Identification utilisateur dans n8n, affichage nom/photo</td></tr>
+            <tr><td><code>user.info.email</code></td><td>Adresse email</td><td>Notifications publication, récupération compte, support</td></tr>
+            <tr><td><code>video.publish</code></td><td>Publication vidéos</td><td><strong>Cœur de métier</strong> : envoi vidéos programmées vers TikTok</td></tr>
+            <tr><td><code>video.upload</code></td><td>Upload médias</td><td>Pré-upload vidéos/photos avant publication (requis par Video Kit)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Principe de minimisation :</strong> Seuls les scopes strictement nécessaires aux fonctionnalités n8n sont demandés. Aucun scope « large » (ex: <code>user.info.stats</code>, <code>video.list</code>) n'est requis.</p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Politique de Confidentialité — n8n TikTok Content Manager — Version 1.0 — 22 novembre 2026</p>
+      <p><a href="mailto:ton@email.com">Contact DPO</a> | <a href="terms.html">Conditions d'Utilisation</a> | <a href="data-usage.html">Description Usage Données</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Description de l'application - n8n TikTok Content Manager">
+  <title>Description de l'Application — n8n TikTok Content Manager</title>
+  <style>
+    :root {
+      --color-bg: #fafafa;
+      --color-surface: #ffffff;
+      --color-text: #1a1a2e;
+      --color-text-muted: #4a4a6a;
+      --color-primary: #ea5b0c;
+      --color-primary-hover: #d44e0a;
+      --color-border: #e0e0e0;
+      --color-code-bg: #f5f5f5;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+      --max-width: 900px;
+      --spacing: 1.5rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #0f0f1a;
+        --color-surface: #1a1a2e;
+        --color-text: #f0f0f5;
+        --color-text-muted: #a0a0b0;
+        --color-border: #2a2a4a;
+        --color-code-bg: #151525;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      line-height: 1.7;
+      color: var(--color-text);
+      background: var(--color-bg);
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      background: var(--color-surface);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 3rem;
+      border: 1px solid var(--color-border);
+    }
+    header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); }
+    h1 { font-size: 2rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.5rem; }
+    .meta { font-size: 0.9rem; color: var(--color-text-muted); line-height: 1.8; }
+    .meta strong { color: var(--color-text); }
+    nav.toc { margin: 2rem 0; padding: 1.5rem; background: var(--color-code-bg); border-radius: 8px; border: 1px solid var(--color-border); }
+    nav.toc h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--color-primary); }
+    nav.toc ul { list-style: none; columns: 2; column-gap: 2rem; }
+    nav.toc li { margin: 0.4rem 0; }
+    nav.toc a { color: var(--color-text); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+    nav.toc a:hover { color: var(--color-primary); text-decoration: underline; }
+    @media (max-width: 600px) { nav.toc ul { columns: 1; } }
+    main h2 { font-size: 1.5rem; font-weight: 600; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-primary); color: var(--color-text); }
+    main h3 { font-size: 1.2rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--color-text); }
+    main h4 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--color-text-muted); }
+    main p { margin: 1rem 0; }
+    main ul, main ol { margin: 1rem 0 1rem 1.5rem; }
+    main li { margin: 0.5rem 0; }
+    main strong { font-weight: 600; }
+    main code { font-family: var(--font-mono); font-size: 0.9em; background: var(--color-code-bg); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--color-primary); }
+    main pre { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1.5rem 0; }
+    main pre code { background: none; padding: 0; color: var(--color-text); font-size: 0.85rem; line-height: 1.6; }
+    main table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.85rem; }
+    main th, main td { padding: 0.6rem 0.8rem; border: 1px solid var(--color-border); text-align: left; }
+    main th { background: var(--color-code-bg); font-weight: 600; color: var(--color-text); }
+    main tr:nth-child(even) td { background: var(--color-code-bg); }
+    main blockquote { border-left: 4px solid var(--color-primary); padding-left: 1rem; margin: 1.5rem 0; color: var(--color-text-muted); font-style: italic; }
+    main hr { border: none; border-top: 1px solid var(--color-border); margin: 2rem 0; }
+    .checklist { list-style: none; }
+    .checklist li { padding-left: 1.5rem; position: relative; margin: 0.5rem 0; }
+    .checklist li::before { content: "✅"; position: absolute; left: 0; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; }
+    .badge-yes { background: #d4edda; color: #155724; }
+    .badge-no { background: #f8d7da; color: #721c24; }
+    .badge-wip { background: #fff3cd; color: #856404; }
+    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 0.9rem; text-align: center; }
+    a { color: var(--color-primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .skip-link { position: absolute; top: -100%; left: 50%; transform: translateX(-50%); background: var(--color-primary); color: white; padding: 0.5rem 1rem; border-radius: 4px; z-index: 100; }
+    .skip-link:focus { top: 1rem; }
+    .diagram { background: var(--color-code-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: 1.5rem; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.5; overflow-x: auto; white-space: pre; margin: 1.5rem 0; }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      nav.toc { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+  <div class="container">
+    <header>
+      <h1>Description de l'Application</h1>
+      <div class="meta">
+        <strong>Nom de l'App :</strong> n8n TikTok Content Manager<br>
+        <strong>Version :</strong> 1.0<br>
+        <strong>Date :</strong> 22 novembre 2026<br>
+        <strong>Développeur :</strong> [Ton Nom / Raison Sociale]<br>
+        <strong>Contact :</strong> <a href="mailto:ton@email.com">ton@email.com</a><br>
+        <strong>Site web :</strong> <a href="https://ton-domaine.com" target="_blank" rel="noopener">https://ton-domaine.com</a>
+      </div>
+    </header>
+
+    <nav class="toc" aria-label="Table des matières">
+      <h2>Sommaire</h2>
+      <ul>
+        <li><a href="#resume">1. Résumé Exécutif</a></li>
+        <li><a href="#probleme">2. Problème Résolu</a></li>
+        <li><a href="#fonctionnalites">3. Fonctionnalités Détaillées</a></li>
+        <li><a href="#architecture">4. Architecture Technique</a></li>
+        <li><a href="#public">5. Public Cible</a></li>
+        <li><a href="#parcours">6. Flux Utilisateur Type</a></li>
+        <li><a href="#conformite">7. Conformité TikTok API</a></li>
+        <li><a href="#business">8. Modèle Économique</a></li>
+        <li><a href="#differentiateurs">9. Différenciateurs</a></li>
+        <li><a href="#roadmap">10. Roadmap</a></li>
+        <li><a href="#liens">11. Liens Utiles pour la Revue</a></li>
+        <li><a href="#checklist">12. Checklist Pré-Soumission</a></li>
+      </ul>
+    </nav>
+
+    <main id="main-content">
+      <section id="resume">
+        <h2>1. Résumé Exécutif</h2>
+        <p><strong>n8n TikTok Content Manager</strong> est une application auto-hébergée construite sur <strong>n8n</strong> (plateforme d'automatisation low-code) qui permet aux créateurs de contenu, community managers et agences de <strong>programmer, préparer et publier automatiquement des vidéos et photos sur TikTok</strong> via une interface visuelle de workflows, tout en respectant scrupuleusement les politiques API et Community Guidelines de TikTok.</p>
+      </section>
+
+      <section id="probleme">
+        <h2>2. Problème Résolu (Use Case Principal)</h2>
+        <h3>Contexte</h3>
+        <p>Les créateurs et gestionnaires de contenu TikTok font face à plusieurs défis :</p>
+        <ul>
+          <li><strong>Publication manuelle chronophage :</strong> obligation d'être devant l'app au moment optimal</li>
+          <li><strong>Gestion multi-comptes complexe :</strong> basculer entre comptes pro/perso, clients</li>
+          <li><strong>Absence de planification native avancée :</strong> TikTok permet le brouillon mais pas la publication programmée récurrente avec files d'attente intelligentes</li>
+          <li><strong>Workflow éclaté :</strong> idée → script → tournage → montage → légende → hashtags → publication = outils multiples, pas de traçabilité</li>
+        </ul>
+        <h3>Solution Apportée</h3>
+        <p>L'Application centralise <strong>tout le pipeline de publication</strong> dans des workflows n8n visuels :</p>
+        <ol>
+          <li><strong>Collecte :</strong> formulaires, webhooks, Google Sheets, Notion, Airtable → idées/contenu</li>
+          <li><strong>Préparation :</strong> montage vidéo automatisé (FFmpeg), génération légendes (IA), sélection hashtags, miniatures</li>
+          <li><strong>Planification :</strong> calendrier visuel, récurrence, fuseaux horaires, file d'attente prioritaire</li>
+          <li><strong>Publication :</strong> envoi programmé via <strong>TikTok Video Kit</strong> (upload → publish) avec gestion erreurs/retry</li>
+          <li><strong>Suivi :</strong> logs statut, métriques de base, notifications (email, Slack, Discord, Telegram)</li>
+        </ol>
+      </section>
+
+      <section id="fonctionnalites">
+        <h2>3. Fonctionnalités Détaillées</h2>
+        <table>
+          <thead>
+            <tr><th>Module</th><th>Description</th><th>API TikTok Utilisée</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Authentification OAuth</td><td>Connexion sécurisée via TikTok Login Kit, gestion multi-comptes, refresh token automatique</td><td><code>Login Kit</code> (<code>user.info.basic</code>, <code>user.info.email</code>)</td></tr>
+            <tr><td>Upload Média</td><td>Pré-upload vidéos/photos (jusqu'à 10Go), validation format, compression si besoin, chunked upload</td><td><code>Video Kit</code> → <code>video.upload</code></td></tr>
+            <tr><td>Publication Programmée</td><td>Création post avec légende, hashtags, mentions, lieu, paramètres confidentialité, date/heure précise</td><td><code>Video Kit</code> → <code>video.publish</code></td></tr>
+            <tr><td>Gestion Brouillons</td><td>Sauvegarde brouillons côté n8n, édition avant envoi, duplication pour variantes A/B</td><td>Stockage local n8n (pre-publish)</td></tr>
+            <tr><td>File d'Attente Intelligente</td><td>Respect rate limits TikTok, retry exponentiel, priorisation, pause/reprise</td><td>Orchestration n8n (côté app)</td></tr>
+            <tr><td>Multi-Comptes / Clients</td><td>Isolation workspaces par compte TikTok, contrôle d'accès basé rôles (admin/editor/viewer)</td><td>Login Kit par compte</td></tr>
+            <tr><td>Notifications & Alertes</td><td>Succès/échec publication, token expiré, quota API proche, erreur média</td><td>Webhooks n8n → Email/Slack/Discord</td></tr>
+            <tr><td>Audit & Conformité</td><td>Journal immuable publications, export RGPD, suppression données à la demande</td><td>Logs n8n + API TikTok</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="architecture">
+        <h2>4. Architecture Technique</h2>
+        <div class="diagram">
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Utilisateur   │────▶│  Interface n8n   │────▶│  Workflow Engine │
+│  (Créateur/CM)  │     │  (Dashboard UI)  │     │  (n8n Core)     │
+└─────────────────┘     └──────────────────┘     └────────┬────────┘
+                                                          │
+                              ┌───────────────────────────┼───────────────────────────┐
+                              ▼                           ▼                           ▼
+                     ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+                     │  TikTok Login   │         │  TikTok Video   │         │   Stockage      │
+                     │      Kit        │         │      Kit        │         │   (PostgreSQL/  │
+                     │  (OAuth 2.0)    │         │ (Upload/Publish)│         │   SQLite + S3)  │
+                     └─────────────────┘         └─────────────────┘         └─────────────────┘
+        </div>
+
+        <h3>Stack Technique</h3>
+        <ul>
+          <li><strong>Orchestration :</strong> n8n (self-hosted, Docker/K8s/VM)</li>
+          <li><strong>Base de données :</strong> PostgreSQL (prod) / SQLite (dev) — chiffrement au repos</li>
+          <li><strong>Stockage médias :</strong> S3-compatible (MinIO, AWS S3, Cloudflare R2) — cycle de vie auto (suppression post-publication)</li>
+          <li><strong>Secrets :</strong> HashiCorp Vault / Variables d'env chiffrées / n8n credentials</li>
+          <li><strong>Monitoring :</strong> Prometheus + Grafana / n8n execution logs</li>
+          <li><strong>Reverse Proxy :</strong> Traefik / Nginx (TLS 1.3, rate limiting, WAF basique)</li>
+        </ul>
+
+        <h3>Sécurité</h3>
+        <ul class="checklist">
+          <li>OAuth 2.0 + PKCE (Authorization Code Flow)</li>
+          <li>Tokens chiffrés au repos (AES-256-GCM)</li>
+          <li>Refresh token rotation + révocation à la déconnexion</li>
+          <li>HTTPS obligatoire (TLS 1.3)</li>
+          <li>Rate limiting propre + respect rate limits TikTok</li>
+          <li>Aucune donnée sensible dans logs (masquage tokens)</li>
+          <li>Suppression auto médias après publication confirmée (configurable)</li>
+        </ul>
+      </section>
+
+      <section id="public">
+        <h2>5. Public Cible</h2>
+        <table>
+          <thead>
+            <tr><th>Segment</th><th>Description</th><th>Besoin Clé</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Créateurs individuels</td><td>Influenceurs, artistes, éducateurs (10k-1M abonnés)</td><td>Gain de temps, régularité, multi-plateforme futur</td></tr>
+            <tr><td>Community Managers / Agences</td><td>Gestion 5-50 comptes clients</td><td>Multi-comptes, validation client, reporting, white-label</td></tr>
+            <tr><td>Équipes Marketing / Marque</td><td>Marques e-commerce, SaaS, médias</td><td>Calendrier éditorial, UGC, campagne produit, conformité marque</td></tr>
+            <tr><td>Développeurs n8n / No-code</td><td>Utilisateurs n8n souhaitant intégrer TikTok</td><td>Nœuds n8n réutilisables, templates workflows</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Estimation utilisateurs cibles :</strong> 500-2000 utilisateurs actifs première année (croissance organique via communauté n8n + bouche-à-oreille créateurs)</p>
+      </section>
+
+      <section id="parcours">
+        <h2>6. Flux Utilisateur Type (User Journey)</h2>
+        <div class="diagram">
+1. INSCRIPTION / CONNEXION
+   └─> Landing page → "Connecter TikTok" → Redirection TikTok OAuth
+       └─> Consentement scopes (profil + publication) → Callback n8n
+           └─> Tokens stockés chiffrés → Dashboard accessible
+
+2. CRÉATION CONTENU
+   └─> Nouveau workflow / Template "Publication TikTok"
+       └─> Upload vidéo (drag-drop) → Prévisualisation
+           └─> Légende (éditeur riche + variables: {{date}}, {{hashtags}})
+               └─> Hashtags (suggestions IA / liste prédéfinie)
+                   └─> Paramètres: confidentialité, commentaires, duos, stitch
+                       └─> Planification: date/heure + fuseau + récurrence
+
+3. VALIDATION & ENVOI
+   └─> Aperçu final → "Programmer" ou "Publier maintenant"
+       └─> Entrée dans file d'attente n8n (respect rate limits)
+
+4. EXÉCUTION (Automatique)
+   └─> Au moment prévu: Upload média → Video Kit → Publish
+       └─> Succès: Notification + Log + Métriques de base (post_id, URL)
+       └─> Échec: Retry (3x backoff) → Alerte → Log détaillé
+
+5. SUIVI & OPTIMISATION
+   └─> Dashboard: Historique, statut, liens vers posts TikTok
+       └─> Export CSV/JSON pour reporting client
+        </div>
+      </section>
+
+      <section id="conformite">
+        <h2>7. Conformité TikTok API</h2>
+        <h3>Scopes Demandés (Minimisation)</h3>
+        <table>
+          <thead>
+            <tr><th>Scope</th><th>Justification Business</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>user.info.basic</code></td><td>Identifier l'utilisateur connecté, afficher nom/avatar dans dashboard n8n, isoler workspaces par compte</td></tr>
+            <tr><td><code>user.info.email</code></td><td>Notifications critiques (échec publication, expiration token), récupération compte, support</td></tr>
+            <tr><td><code>video.upload</code></td><td><strong>Requis</strong> pour pré-uploader médias avant publication (chunked upload, reprise)</td></tr>
+            <tr><td><code>video.publish</code></td><td><strong>Cœur de métier</strong> : publication programmée vidéos/photos sur le fil TikTok</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Scopes <strong>NON</strong> Demandés (et pourquoi)</h3>
+        <table>
+          <thead>
+            <tr><th>Scope</th><th>Pourquoi pas</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>user.info.stats</code></td><td>Pas besoin d'analytics (TikTok Analytics suffit), minimisation</td></tr>
+            <tr><td><code>video.list</code></td><td>L'app gère son propre état (brouillons, planifié), pas besoin de lister l'existant</td></tr>
+            <tr><td><code>comment.*</code></td><td>Hors scope MVP — modération commentaires gérée nativement sur TikTok</td></tr>
+            <tr><td><code>live.*</code></td><td>Pas de fonctionnalité live dans l'app</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Respect Rate Limits & Quotas</h3>
+        <ul>
+          <li><strong>File d'attente n8n :</strong> 1 worker par compte TikTok, séquentiel</li>
+          <li><strong>Retry intelligent :</strong> Backoff exponentiel (1min, 5min, 15min, 1h) + alerte</li>
+          <li><strong>Monitoring quotas :</strong> Alerte à 80% quota journalier</li>
+          <li><strong>Batch upload :</strong> Un média à la fois (pas de parallélisme qui risquerait 429)</li>
+        </ul>
+
+        <h3>Conformité Contenu</h3>
+        <ul class="checklist">
+          <li>Validation côté client : format vidéo (MP4, MOV, WebM), taille (<10Go), durée (<10min ou <60s selon type), ratio (9:16, 1:1, 16:9)</li>
+          <li>Avertissement Community Guidelines dans l'UI avant publication</li>
+          <li>Pas de modification contenu post-upload (respect intégrité média)</li>
+          <li>Support suppression post via TikTok (si utilisateur supprime sur TikTok, sync statut dans n8n)</li>
+        </ul>
+      </section>
+
+      <section id="business">
+        <h2>8. Modèle Économique / Business Model</h2>
+        <table>
+          <thead>
+            <tr><th>Modèle</th><th>Détails</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Open Source (Core)</td><td>Workflows n8n, nœuds personnalisés, documentation → Gratuit, MIT/Apache 2.0</td></tr>
+            <tr><td>Hébergé SaaS (Optionnel)</td><td>Instance n8n gérée, backup, monitoring, support → Abonnement mensuel (freemium)</td></tr>
+            <tr><td>Services Pro</td><td>Setup, formation, templates métier, développement nœuds custom → Facturation projet</td></tr>
+            <tr><td>Partenariat Agences</td><td>Licence multi-clients, white-label, support prioritaire → Partage revenus / licence annuelle</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Pas de monétisation données utilisateur</strong> — Pas de vente, pas de publicité, pas de tracking tiers.</p>
+      </section>
+
+      <section id="differentiateurs">
+        <h2>9. Différenciateurs vs Concurrents</h2>
+        <table>
+          <thead>
+            <tr><th>Concurrent</th><th>Limite</th><th>Notre Avantage</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Buffer / Hootsuite / Later</td><td>Payant, limité TikTok (pas toujours API officielle), pas n8n</td><td><strong>Auto-hébergé, gratuit (core), extensible à l'infini via n8n</strong></td></tr>
+            <tr><td>Zapier / Make (Integromat)</td><td>Coût par tâche, nodes TikTok limités/obsolètes</td><td><strong>Nodes natifs n8n, 0 coût marginal, contrôle total data</strong></td></tr>
+            <tr><td>Scripts Python perso</td><td>Maintenance, pas d'UI, pas de file d'attente robuste</td><td><strong>UI visuelle, retry, monitoring, multi-comptes, templates</strong></td></tr>
+            <tr><td>TikTok Studio (natif)</td><td>Pas de planification récurrente avancée, pas multi-comptes pro</td><td><strong>Workflow complet : idée → publication → suivi, automatisation</strong></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="roadmap">
+        <h2>10. Roadmap (Prochains 12 Mois)</h2>
+        <table>
+          <thead>
+            <tr><th>Trimestre</th><th>Objectifs</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Q4 2026</td><td>MVP : Auth + Upload + Publish + Queue + Dashboard de base + Docs</td></tr>
+            <tr><td>Q1 2027</td><td>Templates workflows (créateurs, agences, e-commerce), Multi-comptes avancé, Notifications riches</td></tr>
+            <tr><td>Q2 2027</td><td>Analytics basiques (vues, likes via API si dispo), IA légendes/hashtags, Support webhook TikTok (real-time)</td></tr>
+            <tr><td>Q3 2027</td><td>Version SaaS hébergée (beta), Marketplace templates communautaires, Certifications sécurité</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="liens">
+        <h2>11. Liens Utiles pour la Revue TikTok</h2>
+        <table>
+          <thead>
+            <tr><th>Document</th><th>Lien (à héberger)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Privacy Policy</strong></td><td><code>https://ton-domaine.com/privacy</code></td></tr>
+            <tr><td><strong>Terms of Service</strong></td><td><code>https://ton-domaine.com/terms</code></td></tr>
+            <tr><td><strong>Data Usage Description</strong></td><td><code>https://ton-domaine.com/data-usage</code></td></tr>
+            <tr><td><strong>Demo Video (3-5 min)</strong></td><td><code>https://ton-domaine.com/demo.mp4</code> ou YouTube unlisted</td></tr>
+            <tr><td><strong>Screenshots Dashboard</strong></td><td><code>https://ton-domaine.com/screenshots/</code></td></tr>
+            <tr><td><strong>Logo App (512x512 PNG)</strong></td><td><code>https://ton-domaine.com/logo.png</code></td></tr>
+            <tr><td><strong>Redirect URI (Prod)</strong></td><td><code>https://ton-domaine.com/callback</code></td></tr>
+            <tr><td><strong>Contact Support</strong></td><td><code>support@ton-domaine.com</code> (réponse < 48h)</td></tr>
+            <tr><td><strong>Repo GitHub (si public)</strong></td><td><code>https://github.com/ton-user/n8n-tiktok-content-manager</code></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="checklist">
+        <h2>12. Checklist Pré-Soumission</h2>
+        <ul class="checklist">
+          <li>Privacy Policy RGPD-complète + scopes justifiés</li>
+          <li>Terms of Service conformes TikTok Developer Terms</li>
+          <li>Data Usage Description détaillée</li>
+          <li>Logo 512x512 PNG fond transparent (Brand Guidelines)</li>
+          <li>Demo video enregistrée (workflow complet : connect → create → schedule → publish)</li>
+          <li>Screenshots : Dashboard, Workflow editor, Publication form, Historique</li>
+          <li>Redirect URI HTTPS configurée en prod + testée</li>
+          <li>Compte développeur TikTok vérifié (email + téléphone)</li>
+          <li>Business Verification (si requis : KBIS/SIRET/Tax ID)</li>
+          <li>Test end-to-end sur compte test TikTok (sandbox)</li>
+          <li>Rate limit handling validé (simulation 429)</li>
+          <li>Token refresh + revoke testé</li>
+          <li>Gestion erreurs médias (format, taille, durée) validée</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>Description de l'Application — n8n TikTok Content Manager — Version 1.0 — 22 novembre 2026</p>
+      <p><a href="mailto:ton@email.com">Contact</a> | <a href="privacy.html">Politique de Confidentialité</a> | <a href="terms.html">Conditions d'Utilisation</a> | <a href="data-usage.html">Description Usage Données</a></p>
+    </footer>
+  </div>
+</body>
+</html>
