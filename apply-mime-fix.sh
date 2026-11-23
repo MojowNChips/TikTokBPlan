@@ -42,7 +42,10 @@ echo "[2/5] Backing up current Caddyfile..."
 cp Caddyfile "Caddyfile.bak.$(date +%Y%m%d_%H%M%S)"
 echo "  Backup created: Caddyfile.bak.$(date +%Y%m%d_%H%M%S)"
 
-# Step 3: Create fixed Caddyfile with NO template variables
+# Step 3: Create fixed Caddyfile with:
+# - Fully rendered domain (no template variables)
+# - Explicit Content-Type header preservation
+# - Transport http with buffers
 echo ""
 echo "[3/5] Creating fixed Caddyfile..."
 cat > Caddyfile << 'CFEOF'
@@ -87,6 +90,7 @@ claudinesclip.online {
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-Port {server_port}
+            # EXPLICITLY preserve Content-Type from upstream - REQUIRED for JS modules
             header_up Content-Type {upstream_content_type}
             transport http {
                 read_buffer 4MB
@@ -108,7 +112,7 @@ CFEOF
 
 # Step 4: Force restart Caddy with fresh container
 echo ""
-echo "[4/5] Restarting Caddy..."
+echo "[4/5] Force restarting Caddy..."
 docker compose stop caddy
 sleep 2
 docker compose rm -f caddy
@@ -117,7 +121,7 @@ docker compose up -d caddy
 # Step 5: Verify
 echo ""
 echo "[5/5] Verification..."
-sleep 5
+sleep 8
 
 echo ""
 echo "=== JS Asset Test ==="
@@ -125,7 +129,7 @@ curl -sk -I https://claudinesclip.online/assets/index--J3eexb7.js 2>&1 | head -2
 
 echo ""
 echo "=== Main Page Test ==="
-curl -sk -o /dev/null -w "Status: %{http_code}, Type: %{content_type}\n" https://claudinesclip.online/
+curl -sk -o /dev/null -w "Status: %{http_code}, Type: %{content_type}\n" https://claudinesclip.online/ 2>&1
 
 echo ""
 echo "================================================================"

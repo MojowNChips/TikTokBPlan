@@ -168,10 +168,13 @@ sed -e "s|\${YOUR_DOMAIN}|$DOMAIN|g" \
 # This was causing "MIME type error" for JS module files
 sed -i '/header_down/d' Caddyfile.rendered
 
-# Add transport http config for large buffers (using a temp file)
-if ! grep -q "transport http" Caddyfile.rendered; then
+# Add transport http config and Content-Type preservation (using a temp file)
+# FIX: header_up Content-Type {upstream_content_type} is REQUIRED for JS module MIME types
+if ! grep -q "header_up Content-Type" Caddyfile.rendered; then
     awk '/header_up X-Forwarded-Port {server_port}/{
         print
+        print "            # EXPLICITLY preserve Content-Type from upstream - REQUIRED for JS modules"
+        print "            header_up Content-Type {upstream_content_type}"
         print "            transport http {"
         print "                read_buffer 4MB"
         print "                write_buffer 4MB"

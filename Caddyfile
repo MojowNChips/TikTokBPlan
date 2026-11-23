@@ -1,12 +1,21 @@
 # Caddyfile — automatic HTTPS via Let's Encrypt
 # Template variables ${YOUR_DOMAIN} and ${CADDY_EMAIL} are rendered by deploy-droplet.sh via sed.
 # Do NOT commit rendered values; keep as template.
+#
+# IMPORTANT: Deploy requires DOMAIN and CADDY_EMAIL env vars to be set before running deploy-droplet.sh
+# If these are empty, the sed command produces malformed config that breaks Content-Type headers.
 
 {
     email ${CADDY_EMAIL}
+    encode gzip
 }
 
 ${YOUR_DOMAIN} {
+
+    # Enable proper MIME type detection
+    header_server {
+        replace "Caddy"
+    }
 
     # TikTok legal docs (required for Developer Platform review) — specific routes FIRST
     handle_path /privacy {
@@ -29,7 +38,7 @@ ${YOUR_DOMAIN} {
         reverse_proxy docs:80
     }
 
-    # n8n automation UI — catch-all LAST
+    # n8n automation UI — catch-all LAST with explicit header preservation
     handle / {
         reverse_proxy n8n:5678 {
             header_up Host {upstream_hostport}
@@ -37,6 +46,8 @@ ${YOUR_DOMAIN} {
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
             header_up X-Forwarded-Port {server_port}
+            # EXPLICITLY preserve Content-Type from upstream - REQUIRED for JS modules
+            header_up Content-Type {upstream_content_type}
             transport http {
                 read_buffer 4MB
                 write_buffer 4MB
