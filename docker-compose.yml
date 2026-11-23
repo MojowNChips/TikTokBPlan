@@ -59,13 +59,6 @@ services:
       - ./temp:/temp
       - ./output:/output
     command: ["--help"]
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   # Optional: Redis for queue management
   redis:
