@@ -40,12 +40,13 @@ services:
       - ./output:/output
       - ./temp:/temp
 
-    # Add FFmpeg and Whisper to n8n container (n8nio/n8n is Debian-based)
+    # Add FFmpeg and Whisper to n8n container (n8nio/n8n is Alpine-based)
     user: root
     entrypoint: >
       /bin/sh -c "
-        apt-get update && apt-get install -y --no-install-recommends ffmpeg python3 python3-pip build-essential &&
-        pip3 install --break-system-packages openai-whisper &&
+        apk add --no-cache ffmpeg python3 py3-pip build-base &&
+        pip3 install --break-system-packages openai-whisper 2>/dev/null ||
+        pip3 install --break-system-packages whisper-cpp-python &&
         exec /docker-entrypoint.sh
       "
 
