@@ -1,84 +1,250 @@
 {
-  "name": "Daily VOD Fetch",
+  "id": "tkc01DailyVodFetch",
+  "name": "01 - Daily VOD Fetch",
+  "active": false,
   "nodes": [
     {
+      "name": "Daily 2AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "cronExpression",
-              "cronExpression": "0 2 * * *"
+              "expression": "0 2 * * *"
             }
           ]
         }
       },
-      "id": "cron-trigger",
-      "name": "Daily 2AM Trigger",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [250, 300]
+      "id": "00417d5a-253a-5035-9323-9b5d06e781bc"
     },
     {
+      "name": "Get Twitch App Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ],
       "parameters": {
-        "functionCode": "const streamers = $env.STREAMER_LIST?.split(',').map(s => s.trim()) || [];\nconst games = $env.GAME_LIST?.split(',').map(g => g.trim()) || [];\n\n// Return streamer list for batch processing\nreturn streamers.map(username => ({ username, games }));"
-      },
-      "id": "prepare-streamers",
-      "name": "Prepare Streamer List",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [500, 300]
-    },
-    {
-      "parameters": {
-        "url": "https://api.twitch.tv/helix/videos",
-        "method": "GET",
+        "method": "POST",
+        "url": "https://id.twitch.tv/oauth2/token",
         "options": {},
-        "headerParametersJson": "{\n  \"Client-ID\": \"{{$env.TWITCH_CLIENT_ID}}\",\n  \"Authorization\": \"Bearer {{$env.TWITCH_ACCESS_TOKEN}}\"\n}",
-        "queryParametersJson": "{\n  \"user_login\": \"{{$json.username}}\",\n  \"type\": \"archive\",\n  \"first\": 100,\n  \"period\": \"day\"\n}",
-        "options": {
-          "pagination": {
-            "paginationType": "headerLink",
-            "paginationResponseField": ""
-          }
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $env.TWITCH_CLIENT_ID }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $env.TWITCH_CLIENT_SECRET }}"
+            },
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            }
+          ]
         }
       },
-      "id": "fetch-vods",
+      "id": "3748638d-0e85-584f-b741-3361eb880240"
+    },
+    {
+      "name": "Prepare Streamer List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// One item per streamer in STREAMER_LIST; carries the Twitch app token along.\nconst token = $input.first().json.access_token;\nconst streamers = ($env.STREAMER_LIST || '').split(',').map(s => s.trim()).filter(Boolean);\nconst games = ($env.GAME_LIST || '').split(',').map(g => g.trim()).filter(Boolean);\nreturn streamers.map(username => ({ json: { username, games, token } }));\n"
+      },
+      "id": "7fb71e0c-8b20-53c5-882b-2dff84cf64a5"
+    },
+    {
+      "name": "Get Twitch User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.twitch.tv/helix/users",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-ID",
+              "value": "={{ $env.TWITCH_CLIENT_ID }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "login",
+              "value": "={{ $json.username }}"
+            }
+          ]
+        }
+      },
+      "id": "eb95d513-59e2-5bd6-98e9-6c45f330d913"
+    },
+    {
       "name": "Fetch VODs from Twitch",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [750, 300]
-    },
-    {
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
       "parameters": {
-        "functionCode": "const vods = $json.data || [];\nconst results = [];\n\nfor (const vod of vods) {\n  // Filter by game if specified\n  const games = $json.games || [];\n  if (games.length > 0 && !games.some(g => vod.game_name?.toLowerCase().includes(g.toLowerCase()))) {\n    continue;\n  }\n  \n  // Skip if already processed (check metadata)\n  results.push({\n    vod_id: vod.id,\n    streamer: $json.username,\n    title: vod.title,\n    game: vod.game_name,\n    duration: vod.duration,\n    url: vod.url,\n    thumbnail: vod.thumbnail_url,\n    created_at: vod.created_at,\n    view_count: vod.view_count\n  });\n}\n\nreturn results;"
-      },
-      "id": "filter-vods",
-      "name": "Filter & Format VODs",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1000, 300]
-    },
-    {
-      "parameters": {
-        "operation": "append",
-        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
-        "range": "VOD_Queue!A:J",
-        "options": {
-          "valueInputMode": "USER_ENTERED"
+        "method": "GET",
+        "url": "https://api.twitch.tv/helix/videos",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-ID",
+              "value": "={{ $env.TWITCH_CLIENT_ID }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Prepare Streamer List').item.json.token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json.data[0].id }}"
+            },
+            {
+              "name": "type",
+              "value": "archive"
+            },
+            {
+              "name": "first",
+              "value": "100"
+            },
+            {
+              "name": "period",
+              "value": "day"
+            }
+          ]
         }
       },
-      "id": "queue-vods",
+      "id": "586ff947-4e03-537c-a447-b49593d55fc6"
+    },
+    {
+      "name": "Filter & Format VODs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Keep VODs whose game matches GAME_LIST (if set) and shape them as VOD_Queue rows.\nconst out = [];\n$input.all().forEach((item, i) => {\n  const src = $('Prepare Streamer List').itemMatching(i).json;\n  const games = src.games || [];\n  for (const vod of item.json.data || []) {\n    if (games.length && !games.some(g => (vod.game_name || '').toLowerCase().includes(g.toLowerCase()))) continue;\n    out.push({ json: {\n      vod_id: vod.id, streamer: src.username, title: vod.title, game: vod.game_name || '',\n      duration: vod.duration, url: vod.url, thumbnail: vod.thumbnail_url,\n      created_at: vod.created_at, view_count: vod.view_count, status: 'queued',\n    }});\n  }\n});\nreturn out;\n"
+      },
+      "id": "64fc89aa-4b0f-5f1e-84fb-49cf1adcbad1"
+    },
+    {
       "name": "Queue VODs to Sheets",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [1250, 300],
-      "credentials": {
-        "googleApi": "googleSheetsApi"
-      }
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        200
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "VOD_Queue"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "id": "6faf0665-f6f5-5bba-83f4-4bf2df5a05c3"
+    },
+    {
+      "name": "Analyze Each VOD (02)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        420
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tkc02ClipAnalyzer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "83a2be6c-9ccf-58f6-8f13-15b4181e67cb"
     }
   ],
   "connections": {
     "Daily 2AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Twitch App Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Twitch App Token": {
       "main": [
         [
           {
@@ -90,6 +256,17 @@
       ]
     },
     "Prepare Streamer List": {
+      "main": [
+        [
+          {
+            "node": "Get Twitch User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Twitch User": {
       "main": [
         [
           {
@@ -118,13 +295,19 @@
             "node": "Queue VODs to Sheets",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Analyze Each VOD (02)",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {}
 }

@@ -1,129 +1,198 @@
 {
-  "name": "Video Processor (FFmpeg + Captions)",
+  "id": "tkc03VideoProcessor",
+  "name": "03 - Video Processor (FFmpeg + Captions)",
+  "active": false,
   "nodes": [
     {
+      "name": "Process Clip Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "1125cbd2-8e53-5a9f-a554-a5023152a21f",
       "parameters": {
         "httpMethod": "POST",
         "path": "process-clip",
+        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "webhook-trigger",
-      "name": "Process Clip Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [250, 300],
-      "webhookId": "process-clip"
+      "id": "7135a391-5c8f-578c-8a4d-3700a96dc3a7"
     },
     {
+      "name": "When Called by 02",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        420
+      ],
       "parameters": {
-        "functionCode": "const clip = $json;\n\nreturn {\n  vod_url: clip.vod_url || `https://twitch.tv/videos/${clip.vod_id}`,\n  start_time: clip.start_time,\n  end_time: clip.end_time,\n  duration: clip.end_time - clip.start_time,\n  streamer: clip.streamer,\n  game: clip.game,\n  clip_id: clip.clip_id || `clip_${clip.vod_id}_${clip.start_time}`,\n  title: clip.title,\n  reason: clip.reason\n};"
+        "inputSource": "passthrough"
       },
-      "id": "prepare-clip",
+      "id": "0997a9da-f97f-5e61-945c-dac9b6ca2643"
+    },
+    {
       "name": "Prepare Clip Data",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [500, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// The webhook puts the POSTed JSON under `body`.\nconst clip = $json.body || $json;\nconst safe = s => String(s || '').replace(/[^A-Za-z0-9_\\-]/g, '');\nconst start = Number(clip.start_time), end = Number(clip.end_time);\nreturn {\n  vod_id: clip.vod_id, vod_url: clip.vod_url || `https://www.twitch.tv/videos/${clip.vod_id}`,\n  start_time: start, end_time: end, duration: end - start,\n  streamer: clip.streamer || '', game: clip.game || '', title: clip.title || '', reason: clip.reason || '',\n  score: clip.score || '', clip_id: safe(clip.clip_id || `clip_${clip.vod_id}_${start}`),\n};\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "c582da99-edd8-5b20-8b27-69a2b4fadb2f"
     },
     {
-      "parameters": {
-        "functionCode": "// Generate FFmpeg command for clip extraction + vertical crop + captions\nconst { vod_url, start_time, end_time, duration, clip_id, streamer, title } = $json;\n\nconst outputPath = `/output/${clip_id}.mp4`;\nconst captionPath = `/temp/${clip_id}_captions.srt`;\nconst watermarkPath = `/scripts/assets/watermark.png`;\n\n// Step 1: Extract clip with vertical crop (9:16)\n// Using yt-dlp to download segment + ffmpeg to process\nconst cmd = `\n  yt-dlp -f \"bestvideo[height<=1080]+bestaudio/best\" \\\n    --download-sections \"*${start_time}-${end_time}\" \\\n    -o \"/temp/${clip_id}_raw.%(ext)s\" \\\n    \"${vod_url}\" &&\n  \n  ffmpeg -y -i \"/temp/${clip_id}_raw.mp4\" \\\n    -vf \"crop=ih*9/16:ih:(ow-iw)/2:0,scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black\" \\\n    -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" \\\n    -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k \\\n    \"/temp/${clip_id}_cropped.mp4\"\n`;\n\nreturn { ...$json, cmd, outputPath, captionPath, croppedPath: `/temp/${clip_id}_cropped.mp4` };"
-      },
-      "id": "gen-ffmpeg-extract",
       "name": "Generate Extract Command",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [750, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Fetch just the HLS segments covering the clip (scripts/twitch_section.py: ffmpeg stalls on\n// Twitch's fMP4 playlists). Prints JSON with the offset of start_time inside the file.\nconst { vod_url, start_time, end_time, clip_id } = $json;\nconst rawPath = `/temp/${clip_id}_raw.mp4`;\nconst cmd = `python3 /scripts/twitch_section.py \"${vod_url}\" ${start_time} ${end_time} \"${rawPath}\" 1080`;\nreturn { ...$json, cmd, rawPath, wavPath: `/temp/${clip_id}.wav`,\n         captionPath: `/temp/${clip_id}_captions.srt`, outputPath: `/output/${clip_id}.mp4` };\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "048e4daf-c78e-591f-9cf6-0f117d27bd47"
     },
     {
-      "parameters": {
-        "command": "={{$json.cmd}}",
-        "options": {
-          "cwd": "/temp"
-        }
-      },
-      "id": "run-extract",
-      "name": "Extract & Crop Clip",
+      "name": "Download Clip Section",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1000, 300]
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "executeOnce": false,
+        "command": "={{ $json.cmd }}"
+      },
+      "id": "11e53b2b-b820-552d-89c2-6224d3129cc9"
     },
     {
-      "parameters": {
-        "functionCode": "// Generate captions using Whisper.cpp\nconst { croppedPath, clip_id, captionPath } = $json;\n\nconst cmd = `whisper-cli -m /models/ggml-base.en.bin -f \"${croppedPath}\" -osrt -of \"${captionPath.replace('.srt', '')}\"`;\n\nreturn { ...$json, captionCmd: cmd };"
-      },
-      "id": "gen-captions",
       "name": "Generate Caption Command",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [750, 500]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Exact clip audio (16 kHz mono) -> whisper.cpp subtitles.\nconst clip = $('Generate Extract Command').item.json;\nlet dl;\ntry { dl = JSON.parse($json.stdout); } catch (e) { throw new Error('Download failed: ' + ($json.stdout || $json.stderr)); }\nif (dl.error) throw new Error('Download failed: ' + dl.error);\nconst trim = `-ss ${dl.offset} -t ${dl.duration}`;\nconst captionCmd = `ffmpeg -nostdin -v error -y ${trim} -i \"${clip.rawPath}\" -vn -ar 16000 -ac 1 \"${clip.wavPath}\" && ` +\n  `whisper-cli -np -t $(nproc) -m /models/ggml-base.en.bin -f \"${clip.wavPath}\" -osrt -of \"${clip.captionPath.replace(/\\.srt$/, '')}\"`;\nreturn { ...clip, trim, captionCmd };\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "de2edf48-348b-5949-92c5-ca608a87aff1"
     },
     {
-      "parameters": {
-        "command": "={{$json.captionCmd}}",
-        "options": {
-          "cwd": "/temp"
-        }
-      },
-      "id": "run-whisper",
       "name": "Run Whisper for Captions",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1000, 500]
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "executeOnce": false,
+        "command": "={{ $json.captionCmd }}"
+      },
+      "id": "c767b6b7-7ad6-58cc-9873-2e493e278d67"
     },
     {
-      "parameters": {
-        "functionCode": "// Final render: burn captions + watermark + branding\nconst { croppedPath, captionPath, clip_id, streamer, title, outputPath } = $json;\nconst watermarkPath = '/scripts/assets/watermark.png';\n\nconst captionStyle = \"Fontsize=24,Fontcolor=white,Outline=2,OutlineColour=black,Alignment=2,MarginV=150\";\n\n// Watermark: scale to 15% of width, place bottom-right with padding\nconst cmd = `ffmpeg -y -i \"${croppedPath}\" -i \"${watermarkPath}\" \\\n  -filter_complex \"[1:v]scale=iw*0.15:ih*0.15[wm]; \\\n  [0:v]subtitles='${captionPath}':force_style='${captionStyle}', \\\n    drawtext=text='@${streamer}':fontsize=36:fontcolor=white:x=w-tw-20:y=20:box=1:boxcolor=black@0.5:boxborderw=5, \\\n    drawtext=text='${title.substring(0, 50)}':fontsize=28:fontcolor=white:x=(w-tw)/2:y=h-100:box=1:boxcolor=black@0.5:boxborderw=5[base]; \\\n  [base][wm]overlay=W-w-20:H-h-20\" \\\n  -c:v libx264 -preset fast -crf 22 -c:a aac -b:a 128k \\\n  -movflags +faststart \\\n  \"${outputPath}\"`;\n\nreturn { ...$json, finalCmd: cmd };"
-      },
-      "id": "gen-final-render",
       "name": "Generate Final Render Command",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1250, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ONE encode: 9:16 crop -> 1080x1920 @30fps, burned captions, streamer tag, title, watermark,\n// loudness normalisation. x264 veryfast keeps a 30 s clip to a few minutes on 1 vCPU.\nconst clip = $('Generate Caption Command').item.json;\nconst esc = s => String(s || '').replace(/['\":\\\\%,;\\[\\]]/g, '').substring(0, 50);\nconst style = 'Fontname=DejaVu Sans,Fontsize=12,PrimaryColour=&HFFFFFF&,Outline=2,OutlineColour=&H000000&,Alignment=2,MarginV=60';\nconst vf = `[0:v]crop=ih*9/16:ih:(iw-ow)/2:0,scale=1080:1920,fps=30,` +\n  `subtitles='${clip.captionPath}':force_style='${style}',` +\n  `drawtext=text='@${esc(clip.streamer)}':fontsize=44:fontcolor=white:x=w-tw-30:y=60:box=1:boxcolor=black@0.5:boxborderw=10,` +\n  `drawtext=text='${esc(clip.title)}':fontsize=40:fontcolor=white:x=(w-tw)/2:y=h-260:box=1:boxcolor=black@0.5:boxborderw=10[base];` +\n  `[1:v]scale=200:-1[wm];[base][wm]overlay=W-w-30:H-h-120[v]`;\nconst finalCmd = `ffmpeg -nostdin -v error -y ${clip.trim} -i \"${clip.rawPath}\" -i /scripts/assets/watermark.png -filter_complex \"${vf}\" ` +\n  `-map \"[v]\" -map 0:a? -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" -c:v libx264 -preset veryfast -crf 23 ` +\n  `-c:a aac -b:a 128k -movflags +faststart \"${clip.outputPath}\" && rm -f \"${clip.rawPath}\" \"${clip.wavPath}\" \"${clip.captionPath}\"`;\nreturn { ...clip, finalCmd };\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "823217a5-5008-56b8-8a48-254c0abc8107"
     },
     {
-      "parameters": {
-        "command": "={{$json.finalCmd}}",
-        "options": {
-          "cwd": "/temp"
-        }
-      },
-      "id": "run-final-render",
       "name": "Final Render (Captions + Watermark)",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1500, 300]
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "executeOnce": false,
+        "command": "={{ $json.finalCmd }}"
+      },
+      "id": "d68ed062-8702-54c0-9772-723f72f9a551"
     },
     {
-      "parameters": {
-        "functionCode": "// Upload to R2 / S3 and return public URL\nconst { outputPath, clip_id } = $json;\nconst fs = require('fs');\nif (!fs.existsSync(outputPath)) {\n  throw new Error('Output file not found');\n}\n\nconst stats = fs.statSync(outputPath);\nconst fileSizeMB = (stats.size / 1024 / 1024).toFixed(2);\n\n// Upload to R2 / S3 using the AWS CLI (pre-installed on VPS)\n// Returns the public URL after successful upload\nconst { execSync } = require('child_process');\nconst r2Bucket = $env.R2_BUCKET_NAME || 'tiktok-clips';\nconst r2PublicUrl = $env.R2_PUBLIC_URL || '';\nconst s3Key = `clips/${clip_id}.mp4`;\n\nlet video_url = outputPath; // fallback to local path\ntry {\n  execSync(\n    `aws s3 cp \"${outputPath}\" \"s3://${r2Bucket}/${s3Key}\" --acl public-read --region auto`,\n    { stdio: 'pipe', timeout: 300000 }\n  );\n  video_url = r2PublicUrl ? `${r2PublicUrl.replace(/\/$/, '')}/${s3Key}` : `https://${r2Bucket}.r2.cloudflarestorage.com/${s3Key}`;\n} catch (err) {\n  // Upload failed — still mark ready but note the failure\n  console.error('R2 upload failed:', err.message);\n  video_url = outputPath;\n}\n\nreturn {\n  ...$json,\n  video_path: outputPath,\n  video_url,\n  file_size_mb: fileSizeMB,\n  status: 'ready_to_post'\n};"
-      },
-      "id": "verify-upload",
       "name": "Verify & Prepare for Upload",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1750, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Check the render exists; upload to Cloudflare R2 when R2 keys and the aws CLI are available.\nconst fs = require('fs');\nconst { execSync } = require('child_process');\nconst clip = $('Generate Final Render Command').item.json;\nif (!fs.existsSync(clip.outputPath)) throw new Error('Output file not found: ' + clip.outputPath);\nconst file_size_mb = (fs.statSync(clip.outputPath).size / 1024 / 1024).toFixed(2);\n\nlet video_url = clip.outputPath;\nif ($env.R2_ACCOUNT_ID && $env.R2_ACCESS_KEY_ID && $env.R2_SECRET_ACCESS_KEY) {\n  const bucket = $env.R2_BUCKET_NAME || 'tiktok-clips';\n  const key = `clips/${clip.clip_id}.mp4`;\n  try {\n    execSync(`aws s3 cp \"${clip.outputPath}\" \"s3://${bucket}/${key}\" --endpoint-url https://${$env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`, {\n      stdio: 'pipe', timeout: 300000,\n      env: { ...process.env, AWS_ACCESS_KEY_ID: $env.R2_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY: $env.R2_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION: 'auto' },\n    });\n    video_url = $env.R2_PUBLIC_URL ? `${$env.R2_PUBLIC_URL.replace(/\\/$/, '')}/${key}` : video_url;\n  } catch (err) {\n    console.log('R2 upload failed, keeping local path:', err.message);\n  }\n}\nreturn {\n  clip_id: clip.clip_id, vod_id: clip.vod_id, streamer: clip.streamer, game: clip.game,\n  start_time: clip.start_time, end_time: clip.end_time, title: clip.title, reason: clip.reason,\n  score: clip.score, video_path: clip.outputPath, video_url, file_size_mb, status: 'ready_to_post', posted_at: '',\n};\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "956388cb-6a9a-5738-88b6-a972f70683f7"
     },
     {
-      "parameters": {
-        "operation": "append",
-        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
-        "range": "Ready_Clips!A:M",
-        "options": {
-          "valueInputMode": "USER_ENTERED"
-        }
-      },
-      "id": "log-ready",
       "name": "Log to Ready Clips Sheet",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [2000, 300],
-      "credentials": {
-        "googleApi": "googleSheetsApi"
-      }
+      "typeVersion": 4.5,
+      "position": [
+        1980,
+        300
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Ready_Clips"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "id": "47c972ab-f8b2-5f22-b477-5d4d92e9a2bd"
     }
   ],
   "connections": {
     "Process Clip Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Clip Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Called by 02": {
       "main": [
         [
           {
@@ -149,14 +218,14 @@
       "main": [
         [
           {
-            "node": "Extract & Crop Clip",
+            "node": "Download Clip Section",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extract & Crop Clip": {
+    "Download Clip Section": {
       "main": [
         [
           {
@@ -223,8 +292,9 @@
       ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {}
 }

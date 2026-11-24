@@ -1,225 +1,264 @@
 {
-  "name": "TikTok Publisher",
+  "id": "tkc04TiktokPublisher",
+  "name": "04 - TikTok Publisher",
+  "active": false,
   "nodes": [
     {
+      "name": "Post Schedule (11am, 3pm, 7pm, 10pm)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "cronExpression",
-              "cronExpression": "0 11,15,19,22 * * *"
+              "expression": "0 11,15,19,22 * * *"
             }
           ]
         }
       },
-      "id": "cron-trigger",
-      "name": "Post Schedule (11am, 3pm, 7pm, 10pm EST)",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [250, 300]
+      "id": "17242a2e-c43e-5141-8961-6607bf18fe0d"
     },
     {
-      "parameters": {
-        "functionCode": "// Get next clip from Ready_Clips sheet\n// Returns oldest unposted clip\nconst sheetId = $env.GOOGLE_SHEET_ID;\n\n// This would be a Google Sheets read - simplified for workflow\n// In practice, use Google Sheets node to read\nreturn { sheetId, range: 'Ready_Clips!A2:M' };"
-      },
-      "id": "get-next-clip",
-      "name": "Get Next Clip Data",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [500, 300]
-    },
-    {
-      "parameters": {
-        "operation": "read",
-        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
-        "range": "Ready_Clips!A2:M",
-        "options": {
-          "majorDimension": "ROWS"
-        }
-      },
-      "id": "read-clips",
       "name": "Read Ready Clips",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [750, 300],
-      "credentials": {
-        "googleApi": "googleSheetsApi"
-      }
-    },
-    {
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        300
+      ],
       "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{$json.error}}",
-              "operation": "isEmpty"
-            }
-          ]
+        "authentication": "serviceAccount",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Ready_Clips"
         },
         "options": {}
       },
-      "id": "has-clip",
-      "name": "Has Clip Ready?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [1120, 300]
+      "id": "84667263-e8b7-5666-829d-fb6a1f997688"
     },
     {
-      "parameters": {
-        "functionCode": "// Find first unposted clip (status === 'ready_to_post')\nconst rows = $json.values || [];\n\nfor (const row of rows) {\n  // Columns: A=clip_id, B=vod_id, C=streamer, D=game, E=start_time, F=end_time,\n  // G=title, H=reason, I=score, J=video_path, K=video_url, L=file_size_mb, M=status\n  if (row[12] === 'ready_to_post') {\n    return {\n      clip_id: row[0],\n      vod_id: row[1],\n      streamer: row[2],\n      game: row[3],\n      start_time: row[4],\n      end_time: row[5],\n      title: row[6],\n      reason: row[7],\n      score: row[8],\n      video_path: row[9],\n      video_url: row[10],\n      file_size_mb: row[11],\n      row_index: rows.indexOf(row) + 2 // 1-indexed + header\n    };\n  }\n}\n\nreturn { error: 'No clips ready to post' };"
-      },
-      "id": "find-next-clip",
       "name": "Find Next Unposted Clip",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1000, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// First row with status ready_to_post; no output (workflow stops quietly) when there is none.\nconst row = $input.all().map(i => i.json).find(r => r.status === 'ready_to_post');\nreturn row ? [{ json: row }] : [];\n"
+      },
+      "id": "1f2cd6a7-0710-5a8d-9dfa-8f6d605e3a92"
     },
     {
-      "parameters": {
-        "functionCode": "// Generate caption with hashtags\nconst { streamer, game, title, reason, clip_id, file_size_mb } = $json;\n\nconst pillarHashtags = {\n  'Insane Plays': '#clutch #outplay #insane #gamingclips #proplay',\n  'Funny Moments': '#funny #fail #ragemoment #gamingfunny #lol',\n  'Reactions': '#reaction #streamer #gamingreaction #priceless',\n  'Tips': '#gamingtips #howto #protip #improve #guide'\n};\n\n// Determine pillar from reason/title\nlet pillar = 'Insane Plays';\nconst text = (title + ' ' + reason).toLowerCase();\nif (text.includes('funny') || text.includes('fail') || text.includes('lol')) pillar = 'Funny Moments';\nelse if (text.includes('react') || text.includes('wtf') || text.includes('omg')) pillar = 'Reactions';\nelse if (text.includes('tip') || text.includes('how') || text.includes('guide')) pillar = 'Tips';\n\nconst hashtags = pillarHashtags[pillar] || pillarHashtags['Insane Plays'];\n\nconst caption = `${title}\n\n${reason}\n\nStreamer: @${streamer}\nGame: ${game}\n\n${hashtags} #${game.replace(/\\s+/g, '')} #${streamer} #fyp #gaming`;\n\nconst fileSizeBytes = Math.round((file_size_mb || 0) * 1024 * 1024);\nconst chunkSize = 10485760; // 10 MB\nconst totalChunkCount = Math.max(1, Math.ceil(fileSizeBytes / chunkSize));\n\nreturn { ...$json, caption, pillar, file_size_bytes: fileSizeBytes, chunk_size: chunkSize, total_chunk_count: totalChunkCount };"
-      },
-      "id": "generate-caption",
       "name": "Generate Caption & Hashtags",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1250, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const { streamer = '', game = '', title = '', reason = '', file_size_mb } = $json;\nconst pillarHashtags = {\n  'Insane Plays': '#clutch #outplay #insane #gamingclips #proplay',\n  'Funny Moments': '#funny #fail #ragemoment #gamingfunny #lol',\n  'Reactions': '#reaction #streamer #gamingreaction #priceless',\n  'Tips': '#gamingtips #howto #protip #improve #guide',\n};\nlet pillar = 'Insane Plays';\nconst text = `${title} ${reason}`.toLowerCase();\nif (/funny|fail|lol/.test(text)) pillar = 'Funny Moments';\nelse if (/react|wtf|omg/.test(text)) pillar = 'Reactions';\nelse if (/tip|how|guide/.test(text)) pillar = 'Tips';\n\nconst caption = `${title}\\n\\n${reason}\\n\\nStreamer: @${streamer}\\nGame: ${game}\\n\\n${pillarHashtags[pillar]} #${String(game).replace(/\\s+/g, '')} #${streamer} #fyp #gaming`;\nconst file_size_bytes = Math.round(Number(file_size_mb || 0) * 1024 * 1024);\n// TikTok: a file under 64 MB may be sent as a single chunk.\nreturn { ...$json, caption, pillar, file_size_bytes, chunk_size: file_size_bytes, total_chunk_count: 1 };\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "ef9b068c-0b32-53cc-83c7-64d25f36de8f"
     },
     {
-      "parameters": {
-        "url": "https://open.tiktokapis.com/v2/post/publish/video/init/",
-        "method": "POST",
-        "options": {},
-        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.TIKTOK_ACCESS_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}",
-        "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"post_info\": {\n    \"title\": \"{{$json.caption}}\",\n    \"privacy_level\": \"PUBLIC\",\n    \"disable_duet\": false,\n    \"disable_stitch\": false,\n    \"disable_comment\": false\n  },\n  \"source_info\": {\n    \"source\": \"FILE_UPLOAD\",\n    \"video_size\": \"{{$json.file_size_bytes}}\",\n    \"chunk_size\": \"{{$json.chunk_size}}\",\n    \"total_chunk_count\": \"{{$json.total_chunk_count}}\"\n  }\n}"
-      },
-      "id": "tiktok-init",
       "name": "TikTok Init Upload",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [1500, 300]
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://open.tiktokapis.com/v2/post/publish/video/init/",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.TIKTOK_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ post_info: { title: $json.caption, privacy_level: ($env.TIKTOK_PRIVACY_LEVEL || 'PUBLIC_TO_EVERYONE'), disable_duet: false, disable_stitch: false, disable_comment: false }, source_info: { source: 'FILE_UPLOAD', video_size: $json.file_size_bytes, chunk_size: $json.chunk_size, total_chunk_count: $json.total_chunk_count } }) }}"
+      },
+      "id": "f0f85e0f-13a9-5b09-bd64-4b5af0921885"
     },
     {
-      "parameters": {
-        "functionCode": "// Prepare video file for upload; carry publish_id and upload_url forward\nconst data = $json.data || $json;\nconst { video_path: vp, publish_id, upload_url } = data;\n\nconst fs = require('fs');\nif (!fs.existsSync(vp)) {\n  throw new Error('Video file not found: ' + vp);\n}\n\nconst stats = fs.statSync(vp);\nconst fileSizeBytes = stats.size; // actual bytes on disk\n\nreturn {\n  ...$json,\n  video_path: vp,\n  publish_id,\n  upload_url,\n  file_size_bytes,\n};\n"
-      },
-      "id": "prepare-upload",
       "name": "Prepare Video Upload",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1750, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Merge TikTok's publish_id / upload_url with the clip; make sure the video file exists.\nconst fs = require('fs');\nconst clip = $('Generate Caption & Hashtags').item.json;\nconst { publish_id, upload_url } = $json.data || {};\nif (!publish_id || !upload_url) throw new Error('TikTok init failed: ' + JSON.stringify($json.error || $json));\nif (!fs.existsSync(clip.video_path)) throw new Error('Video file not found: ' + clip.video_path);\nreturn { ...clip, publish_id, upload_url, file_size_bytes: fs.statSync(clip.video_path).size };\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "edcddac5-0d8d-59db-812e-43768dabfac0"
     },
     {
-      "parameters": {
-        "command": "=python3 /scripts/upload_tiktok.py \"{{$json.video_path}}\" \"{{$json.upload_url}}\" \"{{$json.publish_id}}\"",
-        "options": {
-          "cwd": "/scripts"
-        }
-      },
-      "id": "tiktok-upload",
       "name": "Upload Video to TikTok",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [2000, 300]
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "executeOnce": false,
+        "command": "=python3 /scripts/upload_tiktok.py \"{{ $json.video_path }}\" \"{{ $json.upload_url }}\" \"{{ $json.publish_id }}\""
+      },
+      "id": "0c0f5b4c-daea-5e51-8e28-78b0e0160cf9"
     },
     {
-      "parameters": {
-        "url": "https://open.tiktokapis.com/v2/post/publish/status/fetch/",
-        "method": "POST",
-        "options": {},
-        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.TIKTOK_ACCESS_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}",
-        "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"publish_id\": \"{{$json.publish_id}}\"\n}"
-      },
-      "id": "tiktok-status",
       "name": "Check Publish Status",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [2250, 300]
-    },
-    {
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
       "parameters": {
-        "functionCode": "// Update sheet: mark as posted\nconst { row_index, clip_id, publish_id } = $json;\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: `Ready_Clips!M${row_index}:N${row_index}`,\n  values: [[\n    'posted',\n    new Date().toISOString(),\n    publish_id\n  ]]\n};"
-      },
-      "id": "update-sheet",
-      "name": "Mark Clip as Posted",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [2500, 300]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "sheetId": "={{$json.sheetId}}",
-        "range": "={{$json.range}}",
-        "options": {
-          "valueInputMode": "USER_ENTERED"
-        }
-      },
-      "id": "write-posted",
-      "name": "Write Posted Status",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [2750, 300],
-      "credentials": {
-        "googleApi": "googleSheetsApi"
-      }
-    },
-    {
-      "parameters": {
-        "functionCode": "// Log to analytics sheet\nconst { clip_id, streamer, game, pillar, caption, publish_id } = $json;\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: 'Analytics!A:H',\n  values: [[\n    new Date().toISOString(),\n    clip_id,\n    streamer,\n    game,\n    pillar,\n    publish_id,\n    'posted',\n    0 // initial views\n  ]]\n};"
-      },
-      "id": "log-analytics",
-      "name": "Log to Analytics",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [2500, 500]
-    },
-    {
-      "parameters": {
-        "operation": "append",
-        "sheetId": "={{$json.sheetId}}",
-        "range": "={{$json.range}}",
-        "options": {
-          "valueInputMode": "USER_ENTERED"
-        }
-      },
-      "id": "write-analytics",
-      "name": "Write Analytics Row",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [2750, 500],
-      "credentials": {
-        "googleApi": "googleSheetsApi"
-      }
-    },
-    {
-      "parameters": {
-        "functionCode": "// Notify Discord\nconst { clip_id, streamer, game, pillar, caption, video_url } = $json;\n\nreturn {\n  content: `✅ **Posted to TikTok**\\n**Clip:** ${clip_id}\\n**Streamer:** ${streamer}\\n**Game:** ${game}\\n**Pillar:** ${pillar}\\n**Caption:** ${caption.substring(0, 100)}...\\n**Link:** ${video_url}`,\n  username: 'Clip Bot'\n};"
-      },
-      "id": "format-posted-discord",
-      "name": "Format Posted Notification",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [2500, 700]
-    },
-    {
-      "parameters": {
-        "url": "={{$env.DISCORD_WEBHOOK_URL}}",
         "method": "POST",
-        "jsonParameters": true,
+        "url": "https://open.tiktokapis.com/v2/post/publish/status/fetch/",
         "options": {},
-        "bodyParametersJson": "={{$json}}"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.TIKTOK_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ publish_id: $('Prepare Video Upload').item.json.publish_id }) }}"
       },
-      "id": "send-posted-discord",
+      "id": "cf4ab37e-80d7-5961-bf54-7200a2c58b6f"
+    },
+    {
+      "name": "Mark Clip as Posted",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1760,
+        140
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Ready_Clips"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "clip_id": "={{ $('Prepare Video Upload').item.json.clip_id }}",
+            "status": "posted",
+            "posted_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "clip_id"
+          ],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "4817d970-df2e-51e1-b3bc-b7682306b4ec"
+    },
+    {
+      "name": "Log to Analytics",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Analytics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "posted_at": "={{ $now.toISO() }}",
+            "clip_id": "={{ $('Prepare Video Upload').item.json.clip_id }}",
+            "streamer": "={{ $('Prepare Video Upload').item.json.streamer }}",
+            "game": "={{ $('Prepare Video Upload').item.json.game }}",
+            "pillar": "={{ $('Prepare Video Upload').item.json.pillar }}",
+            "publish_id": "={{ $('Prepare Video Upload').item.json.publish_id }}",
+            "status": "posted",
+            "views": "0"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "9cafcd52-0a1d-5533-a434-c4a897340e8b"
+    },
+    {
       "name": "Send Posted Notification",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [2750, 700]
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ username: 'Clip Bot', content: `✅ **Posted to TikTok**\\n**Clip:** ${$('Prepare Video Upload').item.json.clip_id}\\n**Streamer:** ${$('Prepare Video Upload').item.json.streamer}\\n**Game:** ${$('Prepare Video Upload').item.json.game}\\n**Pillar:** ${$('Prepare Video Upload').item.json.pillar}\\n**Caption:** ${String($('Prepare Video Upload').item.json.caption).substring(0, 100)}...\\n**Link:** ${$('Prepare Video Upload').item.json.video_url}` }) }}"
+      },
+      "id": "3fb31f09-edde-5132-9935-21f8604e6878"
     }
   ],
   "connections": {
-    "Post Schedule (11am, 3pm, 7pm, 10pm EST)": {
+    "Post Schedule (11am, 3pm, 7pm, 10pm)": {
       "main": [
         [
           {
@@ -245,23 +284,11 @@
       "main": [
         [
           {
-            "node": "Has Clip Ready?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Has Clip Ready?": {
-      "main": [
-        [
-          {
             "node": "Generate Caption & Hashtags",
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Generate Caption & Hashtags": {
@@ -322,39 +349,6 @@
             "index": 0
           },
           {
-            "node": "Format Posted Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mark Clip as Posted": {
-      "main": [
-        [
-          {
-            "node": "Write Posted Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Log to Analytics": {
-      "main": [
-        [
-          {
-            "node": "Write Analytics Row",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Posted Notification": {
-      "main": [
-        [
-          {
             "node": "Send Posted Notification",
             "type": "main",
             "index": 0
@@ -363,8 +357,9 @@
       ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {}
 }

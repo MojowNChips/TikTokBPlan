@@ -1,12 +1,23 @@
 services:
   n8n:
-    image: n8nio/n8n:latest
+    # Custom image = n8n + ffmpeg, python3, yt-dlp, whisper-cli, aws (see Dockerfile)
+    build: .
+    image: tiktok-clips-n8n:latest
     container_name: tiktok-clips-n8n
     restart: unless-stopped
-    user: root
+    # Runs as the image's default "node" user so n8n keeps its data (database,
+    # encryption key, owner account) in /home/node/.n8n, which is the n8n_data volume.
     ports:
       - "5678:5678"
+    # Workflows read API keys from .env via $env.X (Twitch, TikTok, Sheets, Discord, R2)
+    env_file:
+      - .env
     environment:
+      # Workflow requirements (n8n 2.x defaults would block these)
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - NODES_EXCLUDE=[]
+      - NODE_FUNCTION_ALLOW_BUILTIN=fs,child_process
+
       # Basic config
       - N8N_HOST=${DOMAIN:-localhost}
       - N8N_PORT=5678
@@ -14,13 +25,11 @@ services:
       - WEBHOOK_URL=https://${DOMAIN:-localhost}/
 
       # Database (SQLite for simplicity, use Postgres for production)
+      # Stored as /home/node/.n8n/database.sqlite inside the n8n_data volume.
       - DB_TYPE=sqlite
-      - DB_SQLITE_DATABASE=/data/n8n.db
 
-      # Security
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme123}
+      # Security: n8n 1.x ignores N8N_BASIC_AUTH_*; access is protected by the
+      # owner account created on first visit.
 
       # Execution
       - EXECUTIONS_MODE=regular
@@ -34,32 +43,13 @@ services:
       - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom
 
     volumes:
-      - n8n_data:/data
+      - n8n_data:/home/node/.n8n
       - ./custom-nodes:/home/node/.n8n/custom
       - ./workflows:/data/workflows
       - ./scripts:/scripts
       - ./output:/output
       - ./temp:/temp
-
-  # Optional: Separate Whisper service for heavier loads
-  whisper:
-    image: ghcr.io/ggerganov/whisper.cpp:main
-    container_name: tiktok-clips-whisper
-    restart: unless-stopped
-    volumes:
       - ./models:/models
-      - ./temp:/temp
-      - ./output:/output
-    command: ["--help"]
-
-  # Optional: Redis for queue management
-  redis:
-    image: redis:7-alpine
-    container_name: tiktok-clips-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
 
   # Monitoring
   uptime-kuma:
@@ -101,7 +91,6 @@ services:
 
 volumes:
   n8n_data:
-  redis_data:
   uptime_data:
   caddy_data:
   caddy_config:

@@ -1,117 +1,188 @@
 {
-  "name": "Analytics Collector",
+  "id": "tkc05AnalyticsCollector",
+  "name": "05 - Analytics Collector",
+  "active": false,
   "nodes": [
     {
+      "name": "Hourly Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "cronExpression",
-              "cronExpression": "0 * * * *"
+              "expression": "0 * * * *"
             }
           ]
         }
       },
-      "id": "cron-trigger",
-      "name": "Hourly Trigger",
-      "type": "n8n-nodes-base.cron",
-      "typeVersion": 1,
-      "position": [250, 300]
+      "id": "fc2d39e8-b4b3-51c4-aa7e-884d7bd17946"
     },
     {
-      "parameters": {
-        "operation": "read",
-        "sheetId": "={{$env.GOOGLE_SHEET_ID}}",
-        "range": "Analytics!A2:H",
-        "options": {
-          "majorDimension": "ROWS"
-        }
-      },
-      "id": "read-analytics",
       "name": "Read Analytics Sheet",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [500, 300],
-      "credentials": {
-        "googleApi": "googleSheetsApi"
-      }
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Analytics"
+        },
+        "options": {}
+      },
+      "id": "74855527-c63e-5f52-9e29-16885c546682"
     },
     {
-      "parameters": {
-        "functionCode": "// Get posts from last 7 days that need updating\nconst rows = $json.values || [];\nconst cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);\n\nconst toUpdate = [];\nfor (let i = 0; i < rows.length; i++) {\n  const row = rows[i];\n  const postedDate = new Date(row[0]);\n  const publishId = row[5];\n  const status = row[6];\n  \n  if (postedDate >= cutoff && status === 'posted' && publishId) {\n    toUpdate.push({ rowIndex: i + 2, publishId, postedDate: row[0] });\n  }\n}\n\nreturn toUpdate;"
-      },
-      "id": "filter-recent",
       "name": "Filter Recent Posts",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [750, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Posts from the last 7 days that have an id to query.\nconst cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;\nreturn $input.all().map(i => i.json)\n  .filter(r => r.publish_id && ['posted', 'updated'].includes(r.status) && new Date(r.posted_at).getTime() >= cutoff)\n  .map(r => ({ json: { publishId: String(r.publish_id), postedDate: r.posted_at } }));\n"
+      },
+      "id": "d6f7e1fc-919e-5752-a963-5843a54df05c"
     },
     {
-      "parameters": {
-        "url": "https://open.tiktokapis.com/v2/video/query/",
-        "method": "POST",
-        "options": {},
-        "headerParametersJson": "{\n  \"Authorization\": \"Bearer {{$env.TIKTOK_ACCESS_TOKEN}}\",\n  \"Content-Type\": \"application/json\"\n}",
-        "jsonParameters": true,
-        "bodyParametersJson": "{\n  \"filters\": {\n    \"video_ids\": [\"{{$json.publishId}}\"]\n  }\n}"
-      },
-      "id": "tiktok-query",
       "name": "Query TikTok Video Stats",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [1000, 300]
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://open.tiktokapis.com/v2/video/query/",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.TIKTOK_ACCESS_TOKEN }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,view_count,like_count,comment_count,share_count"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filters: { video_ids: [$json.publishId] } }) }}"
+      },
+      "id": "8ec9df59-0b7b-5e38-923b-b25395332d7c"
     },
     {
-      "parameters": {
-        "functionCode": "// Parse TikTok response and prepare sheet update\n// Access upstream Filter Recent Posts node output for rowIndex/postedDate\nconst upstream = $nodes[\"Filter Recent Posts\"].json[$itemIndex] || {};\nconst rowIndex = upstream.rowIndex;\nconst postedDate = upstream.postedDate;\n\nconst data = $json.data?.videos?.[0];\nif (!data) return { error: 'No data', rowIndex };\n\nreturn {\n  sheetId: $env.GOOGLE_SHEET_ID,\n  range: `Analytics!F${rowIndex}:H${rowIndex}`,\n  values: [[\n    data.publish_id,\n    'updated',\n    data.statistics?.view_count || 0,\n    data.statistics?.like_count || 0,\n    data.statistics?.comment_count || 0,\n    data.statistics?.share_count || 0,\n    data.statistics?.collect_count || 0\n  ]]\n};"
-      },
-      "id": "parse-stats",
       "name": "Parse Statistics",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1250, 300]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const out = [];\n$input.all().forEach((item, i) => {\n  const post = $('Filter Recent Posts').itemMatching(i).json;\n  const v = item.json.data?.videos?.[0];\n  if (!v) return;\n  out.push({ json: {\n    publish_id: post.publishId, status: 'updated', views: v.view_count || 0, likes: v.like_count || 0,\n    comments: v.comment_count || 0, shares: v.share_count || 0, updated_at: new Date().toISOString(),\n  }});\n});\nreturn out;\n"
+      },
+      "id": "ddb9d7b6-736d-5eaa-8071-8c5eba44676c"
     },
     {
-      "parameters": {
-        "operation": "update",
-        "sheetId": "={{$json.sheetId}}",
-        "range": "={{$json.range}}",
-        "options": {
-          "valueInputMode": "USER_ENTERED"
-        }
-      },
-      "id": "update-analytics",
       "name": "Update Analytics Sheet",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4,
-      "position": [1500, 300],
-      "credentials": {
-        "googleApi": "googleSheetsApi"
-      }
+      "typeVersion": 4.5,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Analytics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "publish_id": "={{ $json.publish_id }}",
+            "status": "={{ $json.status }}",
+            "views": "={{ $json.views }}",
+            "likes": "={{ $json.likes }}",
+            "comments": "={{ $json.comments }}",
+            "shares": "={{ $json.shares }}",
+            "updated_at": "={{ $json.updated_at }}"
+          },
+          "matchingColumns": [
+            "publish_id"
+          ],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "6976474c-7a05-589d-af4a-28085d8b5227"
     },
     {
-      "parameters": {
-        "functionCode": "// Check for viral clips (views > 10k in first hour, or > 100k total)\nconst upstream = $nodes[\"Filter Recent Posts\"].json[$itemIndex] || {};\nconst postedDate = upstream.postedDate;\nconst data = $json.data?.videos?.[0];\nif (!data) return null;\n\nconst views = data.statistics?.view_count || 0;\nconst hoursSince = postedDate ? (Date.now() - new Date(postedDate).getTime()) / (1000 * 60 * 60) : 0;\n\nconst isViral = (hoursSince <= 1 && views >= 10000) || views >= 100000;\n\nif (isViral) {\n  return {\n    content: `🚨 **VIRAL ALERT**\\n**Clip:** ${data.video_id}\\n**Views:** ${views.toLocaleString()}\\n**Hours since post:** ${hoursSince.toFixed(1)}\\n**Likes:** ${data.statistics?.like_count || 0}\\n**Shares:** ${data.statistics?.share_count || 0}\\n\\nConsider boosting similar content!`,\n    username: 'Analytics Bot'\n  };\n}\nreturn null;"
-      },
-      "id": "check-viral",
       "name": "Check Viral Threshold",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [1250, 500]
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        420
+      ],
+      "parameters": {
+        "jsCode": "// Viral: >10k views within the first hour, or >100k total.\nconst out = [];\n$input.all().forEach((item, i) => {\n  const post = $('Filter Recent Posts').itemMatching(i).json;\n  const v = item.json.data?.videos?.[0];\n  if (!v) return;\n  const views = v.view_count || 0;\n  const hours = post.postedDate ? (Date.now() - new Date(post.postedDate).getTime()) / 3600000 : 0;\n  if ((hours <= 1 && views >= 10000) || views >= 100000) {\n    out.push({ json: { username: 'Analytics Bot', content:\n      `🚨 **VIRAL ALERT**\\n**Clip:** ${v.id}\\n**Views:** ${views.toLocaleString()}\\n**Hours since post:** ${hours.toFixed(1)}\\n**Likes:** ${v.like_count || 0}\\n**Shares:** ${v.share_count || 0}\\n\\nConsider boosting similar content!` } });\n  }\n});\nreturn out;\n"
+      },
+      "id": "0de6798d-eb88-50c9-9195-43dedd297b17"
     },
     {
-      "parameters": {
-        "url": "={{$env.DISCORD_WEBHOOK_URL}}",
-        "method": "POST",
-        "jsonParameters": true,
-        "options": {},
-        "bodyParametersJson": "={{$json}}"
-      },
-      "id": "send-viral-alert",
       "name": "Send Viral Alert",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [1500, 500]
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: $json.content, username: $json.username }) }}"
+      },
+      "id": "db2ef158-288a-55a5-9806-08b15e4acbf1"
     }
   ],
   "connections": {
@@ -187,8 +258,9 @@
       ]
     }
   },
-  "active": true,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "pinData": {}
 }

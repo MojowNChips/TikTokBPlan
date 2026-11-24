@@ -1,366 +1,259 @@
 #!/usr/bin/env python3
 """
-VOD Analyzer - Finds high-engagement moments in Twitch VODs.
-Downloads the VOD, analyzes audio energy, visual changes, and transcribes
-with Whisper.cpp to score candidate clips (0-100).
+VOD Analyzer - finds high-engagement moments in a Twitch VOD.
+
+Usage: analyze_vod.py <vod_id> <streamer>
+Prints a JSON array of clip candidates on stdout (logs go to stderr), each:
+  {clip_id, vod_id, streamer, start_time, end_time, duration, score, reason, transcript, breakdown}
+
+How it works (fits a 1 vCPU / 2 GB droplet):
+  1. Download the VOD once at 160p (video+audio) via twitch_section.py, capped at MAX_ANALYZE_SECONDS.
+  2. One ffmpeg pass for loudness (RMS every 10 s) and one for scene changes (2 fps, 160 px).
+  3. Score every 30 s window (10 s stride) relative to the rest of the VOD (percentiles),
+     so a quiet streamer's loud moments still stand out.
+  4. Transcribe only the TOP_CANDIDATES windows with whisper.cpp and add a keyword score.
+  5. Merge overlapping windows and return the best MAX_RESULTS.
+
+Env: TWITCH_CLIENT_ID + TWITCH_CLIENT_SECRET (an app token is fetched automatically;
+TWITCH_ACCESS_TOKEN is used instead if set), WHISPER_MODEL, MAX_ANALYZE_SECONDS (default 14400),
+CLIP_WINDOW (clip length in s, default 30), TOP_CANDIDATES (default 20), MAX_RESULTS (default 10), KEEP_VOD_FILE=1 to keep the download.
 """
 
 import json
-import sys
 import os
-import subprocess
 import re
-from datetime import datetime
-from typing import List, Dict, Any
+import subprocess
+import sys
+from bisect import bisect_left
+from typing import Dict, List
 
 import requests
 
+from twitch_section import fetch_section  # same folder (/scripts)
 
-def get_vod_metadata(vod_id: str, client_id: str, access_token: str) -> Dict:
-    """Fetch VOD metadata from Twitch API."""
-    headers = {
-        "Client-ID": client_id,
-        "Authorization": f"Bearer {access_token}",
-    }
-    resp = requests.get(
-        f"https://api.twitch.tv/helix/videos?id={vod_id}", headers=headers, timeout=30
-    )
-    if resp.status_code == 200:
-        try:
-            data = resp.json().get("data", [])
-        except ValueError:
-            print(f"Twitch metadata error: non-JSON response: {resp.text[:200]}", file=sys.stderr)
-            return {}
-        return data[0] if data else {}
-    print(f"Twitch metadata error: {resp.status_code} {resp.text}", file=sys.stderr)
-    return {}
+WINDOW = int(os.getenv("CLIP_WINDOW", "30"))  # seconds per clip (Creator Rewards pays only on videos > 60 s; use 65+)
+STRIDE = 10          # seconds between window starts (= loudness chunk size)
+KEYWORDS = [
+    "clutch", "insane", "crazy", "unbelievable", "impossible",
+    "one tap", "headshot", "ace", "quad", "penta", "team wipe",
+    "wtf", "omg", "no way", "lucky", "hack", "cheat",
+    "funny", "fail", "rage", "tilt", "throw", "mistake",
+    "react", "reaction", "shocked", "surprised", "speechless",
+    "let's go", "lets go", "oh my god", "what the",
+]
+WEIGHTS = {"audio_energy": 0.35, "visual_changes": 0.30, "keywords": 0.35}
 
 
-def parse_twitch_duration(duration_str: str) -> int:
-    """Parse a Twitch duration string like '1h30m45s' into total seconds."""
-    total = 0
-    for match in re.finditer(r"(\d+)(h|m|s)", duration_str):
-        value, unit = int(match.group(1)), match.group(2)
-        if unit == "h":
-            total += value * 3600
-        elif unit == "m":
-            total += value * 60
-        elif unit == "s":
-            total += value
-    return total
+def log(*a):
+    print(*a, file=sys.stderr, flush=True)
 
 
-def download_vod_segment(
-    vod_url: str,
-    start: float,
-    end: float,
-    output_path: str,
-) -> bool:
-    """Download a segment of a VOD using yt-dlp."""
+# ------------------------------------------------------------------ Twitch
+def twitch_token(client_id: str) -> str:
+    tok = os.getenv("TWITCH_ACCESS_TOKEN")
+    if tok:
+        return tok
+    secret = os.getenv("TWITCH_CLIENT_SECRET")
+    if not (client_id and secret):
+        return ""
+    r = requests.post("https://id.twitch.tv/oauth2/token", params={
+        "client_id": client_id, "client_secret": secret, "grant_type": "client_credentials"}, timeout=30)
+    r.raise_for_status()
+    return r.json()["access_token"]
+
+
+def get_vod_metadata(vod_id: str, client_id: str, token: str) -> Dict:
+    r = requests.get("https://api.twitch.tv/helix/videos", params={"id": vod_id},
+                     headers={"Client-ID": client_id, "Authorization": f"Bearer {token}"}, timeout=30)
+    if r.status_code != 200:
+        log(f"Twitch metadata error: {r.status_code} {r.text[:200]}")
+        return {}
+    data = r.json().get("data", [])
+    return data[0] if data else {}
+
+
+def parse_twitch_duration(s: str) -> int:
+    mult = {"h": 3600, "m": 60, "s": 1}
+    return sum(int(v) * mult[u] for v, u in re.findall(r"(\d+)([hms])", s or ""))
+
+
+# ------------------------------------------------------------------ media
+def download_vod(vod_url: str, seconds: int, out_path: str) -> bool:
+    """First <seconds> of the VOD at 160p (plenty for loudness/scene analysis, ~60 MB per hour)."""
     try:
-        cmd = [
-            "yt-dlp",
-            "-f",
-            "bestvideo[height<=1080]+bestaudio/best",
-            "--download-sections",
-            f"*{start}-{end}",
-            "--force-keyframes-at-cuts",
-            "-o",
-            output_path,
-            vod_url,
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            print(f"yt-dlp error: {result.stderr}", file=sys.stderr)
-            return False
-        # yt-dlp may append an extension; find the actual file
-        if not os.path.exists(output_path):
-            base = output_path.rsplit(".", 1)[0]
-            for ext in ["mp4", "mkv", "webm", "ts"]:
-                cand = f"{base}.{ext}"
-                if os.path.exists(cand):
-                    os.rename(cand, output_path)
-                    return True
-            print(f"Downloaded file not found: {output_path}", file=sys.stderr)
-            return False
+        res = fetch_section(vod_url, 0, seconds, out_path, max_height=160)
+        log(f"Downloaded {res['segments']} segments")
         return True
-    except subprocess.TimeoutExpired:
-        print("yt-dlp timed out", file=sys.stderr)
-        return False
-    except FileNotFoundError:
-        print("yt-dlp not installed", file=sys.stderr)
+    except Exception as e:  # noqa: BLE001
+        log(f"Download error: {e}")
         return False
 
 
-def analyze_audio_energy(video_path: str, start: float, end: float) -> float:
-    """Analyze audio energy in a segment using ffmpeg astats."""
+def media_duration(path: str) -> float:
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path],
+                       capture_output=True, text=True)
     try:
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", video_path,
-            "-ss", str(start), "-to", str(end),
-            "-af", "astats=metadata=1:reset=1",
-            "-f", "null", "-",
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        for line in result.stderr.split("\n"):
-            if "RMS level" in line:
-                match = re.search(r"RMS level:\s*(-?\d+\.?\d*)", line)
-                if match:
-                    db = float(match.group(1))
-                    # Convert to 0-100 scale (-60dB to 0dB)
-                    return max(0, min(100, (db + 60) / 60 * 100))
-    except Exception as e:
-        print(f"Audio analysis error: {e}", file=sys.stderr)
-    return 50  # Default middle score
+        return float(r.stdout.strip())
+    except ValueError:
+        return 0.0
 
 
-def detect_visual_changes(video_path: str, start: float, end: float) -> float:
-    """Detect scene changes/motion using ffmpeg select filter."""
+def loudness_per_chunk(path: str, tmp: str) -> List[float]:
+    """RMS level (dB) for each STRIDE-second chunk, in one ffmpeg pass."""
+    out = f"{tmp}_rms.txt"
+    sr = 8000
+    af = (f"aresample={sr},asetnsamples=n={sr * STRIDE}:p=0,astats=metadata=1:reset=1,"
+          f"ametadata=mode=print:key=lavfi.astats.Overall.RMS_level:file={out}")
+    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", path, "-vn", "-af", af, "-f", "null", "-"],
+                   capture_output=True, text=True)
+    levels = []
+    if os.path.exists(out):
+        for line in open(out, encoding="utf-8", errors="ignore"):
+            if "RMS_level=" in line:
+                v = line.split("=", 1)[1].strip()
+                levels.append(-90.0 if v in ("-inf", "inf", "nan") else float(v))
+        os.remove(out)
+    return levels
+
+
+def scene_change_times(path: str, tmp: str) -> List[float]:
+    """Timestamps of scene cuts / big motion, in one low-res ffmpeg pass."""
+    out = f"{tmp}_scene.txt"
+    vf = f"fps=2,scale=160:-2,select='gt(scene,0.3)',metadata=mode=print:file={out}"
+    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", path, "-an", "-vf", vf, "-f", "null", "-"],
+                   capture_output=True, text=True)
+    times = []
+    if os.path.exists(out):
+        for line in open(out, encoding="utf-8", errors="ignore"):
+            m = re.search(r"pts_time:([\d.]+)", line)
+            if m:
+                times.append(float(m.group(1)))
+        os.remove(out)
+    return sorted(times)
+
+
+def transcribe(path: str, start: float, end: float, model: str, tmp: str) -> str:
+    if not os.path.exists(model):
+        return ""
+    wav = f"{tmp}_{int(start)}.wav"
     try:
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", video_path,
-            "-ss", str(start), "-to", str(end),
-            "-vf", r"select='gt(scene,0.3)',metadata=print:file=-",
-            "-f", "null", "-",
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-        scene_changes = result.stdout.count("scene_score")
-        duration = end - start
-        if duration <= 0:
-            return 0
-        # Normalize: ~10 changes per minute = 100
-        return min(100, (scene_changes / (duration / 60)) * 10)
-    except Exception as e:
-        print(f"Visual analysis error: {e}", file=sys.stderr)
-    return 50
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-ss", str(start), "-to", str(end), "-i", path,
+                        "-ar", "16000", "-ac", "1", wav], check=True, capture_output=True, timeout=120)
+        r = subprocess.run(["whisper-cli", "-m", model, "-f", wav, "-nt", "-np", "-t", str(os.cpu_count() or 1)],
+                           capture_output=True, text=True, timeout=300)
+        return " ".join(r.stdout.split())
+    except Exception as e:  # noqa: BLE001
+        log(f"Transcription error at {start}s: {e}")
+        return ""
+    finally:
+        if os.path.exists(wav):
+            os.remove(wav)
 
 
-def transcribe_segment(video_path: str, start: float, end: float, model_path: str) -> str:
-    """Transcribe audio segment using whisper.cpp."""
-    try:
-        audio_path = f"/tmp/segment_{start}_{end}.wav"
-        txt_path = f"{audio_path}.txt"
-
-        # Extract audio segment
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", video_path,
-            "-ss", str(start), "-to", str(end),
-            "-ar", "16000", "-ac", "1", audio_path,
-        ]
-        subprocess.run(cmd, check=True, capture_output=True, timeout=60)
-
-        # Run whisper.cpp
-        cmd = [
-            "whisper-cli", "-m", model_path,
-            "-f", audio_path, "-otxt", "-of", audio_path,
-        ]
-        subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-
-        # Cleanup audio
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-
-        if os.path.exists(txt_path):
-            with open(txt_path, "r", encoding="utf-8") as f:
-                text = f.read().strip()
-            os.remove(txt_path)
-            return text
-    except Exception as e:
-        print(f"Transcription error: {e}", file=sys.stderr)
-    return ""
+# ------------------------------------------------------------------ scoring
+def percentiles(values: List[float]) -> List[float]:
+    """Rank of each value within the list, 0-100."""
+    if not values:
+        return []
+    order = sorted(values)
+    n = len(order)
+    return [100.0 * bisect_left(order, v) / max(1, n - 1) for v in values]
 
 
-def score_moment(
-    start: float,
-    end: float,
-    chat_velocity: float,  # messages per second
-    peak_viewers: int,
-    audio_energy: float,
-    visual_changes: float,
-    transcript: str,
-    keywords: List[str],
-) -> Dict[str, Any]:
-    """Score a moment based on multiple factors."""
-
-    # Base scores (0-100 each)
-    scores = {
-        "chat_velocity": min(100, chat_velocity * 10),  # 10 msg/s = 100
-        "peak_viewers": min(100, peak_viewers / 100),   # 10k viewers = 100
-        "audio_energy": audio_energy,                    # 0-100
-        "visual_changes": visual_changes,                # 0-100
-        "keywords": 0,
-    }
-
-    # Keyword bonus from transcript
-    text_lower = transcript.lower()
-    keyword_hits = sum(1 for kw in keywords if kw.lower() in text_lower)
-    scores["keywords"] = min(100, keyword_hits * 20)
-
-    # Weighted total
-    weights = {
-        "chat_velocity": 0.25,
-        "peak_viewers": 0.20,
-        "audio_energy": 0.15,
-        "visual_changes": 0.20,
-        "keywords": 0.20,
-    }
-
-    total_score = sum(scores[k] * weights[k] for k in scores)
-
-    # Determine reason
+def score(audio_pct: float, visual_pct: float, transcript: str) -> Dict:
+    text = transcript.lower()
+    hits = [k for k in KEYWORDS if k in text]
+    parts = {"audio_energy": round(audio_pct, 1), "visual_changes": round(visual_pct, 1),
+             "keywords": min(100, len(hits) * 25)}
+    total = sum(parts[k] * w for k, w in WEIGHTS.items())
     reasons = []
-    if scores["chat_velocity"] > 70:
-        reasons.append("chat explosion")
-    if scores["peak_viewers"] > 70:
-        reasons.append("peak viewership")
-    if scores["audio_energy"] > 70:
+    if audio_pct >= 85:
         reasons.append("audio spike")
-    if scores["visual_changes"] > 70:
+    if visual_pct >= 85:
         reasons.append("high action")
-    if scores["keywords"] > 50:
-        reasons.append("keyword triggers")
-
-    return {
-        "start_time": start,
-        "end_time": end,
-        "duration": end - start,
-        "score": round(total_score),
-        "breakdown": scores,
-        "reason": ", ".join(reasons) if reasons else "moderate engagement",
-        "transcript": transcript[:200],
-    }
+    if hits:
+        reasons.append("said: " + ", ".join(hits[:3]))
+    return {"score": round(total), "breakdown": parts, "reason": "; ".join(reasons) or "moderate engagement"}
 
 
-def find_best_moments(
-    vod_id: str,
-    streamer: str,
-    video_path: str,
-    duration: float,
-    client_id: str,
-    access_token: str,
-    model_path: str,
-    segment_length: int = 30,
-    stride: int = 10,
-    min_score: int = 65,
-) -> List[Dict]:
-    """Analyze VOD and return best moments using real ffmpeg/whisper analysis."""
+def find_best_moments(vod_id: str, streamer: str, path: str, model: str, tmp: str) -> List[Dict]:
+    duration = media_duration(path)
+    log(f"Analyzing {duration:.0f}s of VOD {vod_id}...")
+    rms = loudness_per_chunk(path, tmp)
+    cuts = scene_change_times(path, tmp)
+    per_window = WINDOW // STRIDE
 
-    # High-value keywords for gaming clips
-    keywords = [
-        "clutch", "insane", "crazy", "unbelievable", "impossible",
-        "one tap", "headshot", "ace", "quad", "penta", "team wipe",
-        "wtf", "omg", "no way", "lucky", "hack", "cheat",
-        "funny", "fail", "rage", "tilt", "throw", "mistake",
-        "react", "reaction", "shocked", "surprised", "speechless",
-    ]
+    windows = []
+    for i in range(max(0, len(rms) - per_window + 1)):
+        start = i * STRIDE
+        end = min(start + WINDOW, duration)
+        if end - start < WINDOW / 2:
+            continue
+        audio = sum(rms[i:i + per_window]) / per_window
+        visual = bisect_left(cuts, end) - bisect_left(cuts, start)
+        windows.append({"start": start, "end": end, "audio": audio, "visual": visual})
+    if not windows:
+        return []
+
+    for w, a, v in zip(windows, percentiles([w["audio"] for w in windows]), percentiles([w["visual"] for w in windows])):
+        w["audio_pct"], w["visual_pct"] = a, v
+        w["pre"] = WEIGHTS["audio_energy"] * a + WEIGHTS["visual_changes"] * v
+
+    # Transcribe only the strongest, non-overlapping candidates.
+    top_n = int(os.getenv("TOP_CANDIDATES", "20"))
+    candidates = []
+    for w in sorted(windows, key=lambda w: w["pre"], reverse=True):
+        if all(w["end"] <= c["start"] or w["start"] >= c["end"] for c in candidates):
+            candidates.append(w)
+        if len(candidates) >= top_n:
+            break
 
     moments = []
-    print(f"Analyzing VOD {vod_id} ({duration}s)...", file=sys.stderr)
-
-    num_segments = int(duration / stride)
-    for i in range(min(num_segments, 100)):  # Limit segments for demo runtime
-        start = i * stride
-        end = min(start + segment_length, duration)
-        if end <= start:
-            continue
-
-        # Download this segment if we don't already have the full video
-        # (video_path may not exist yet - download full VOD once instead)
-        # For now we analyze the whole video_path if available.
-
-        audio_energy = analyze_audio_energy(video_path, start, end)
-        visual_changes = detect_visual_changes(video_path, start, end)
-        transcript = transcribe_segment(video_path, start, end, model_path)
-
-        # Chat velocity / peak viewers not available from public API without
-        # chat replay access; use viewer count as proxy if metadata available.
-        chat_vel = 0.0
-        peak_v = 0
-
-        scored = score_moment(
-            start, end, chat_vel, peak_v, audio_energy, visual_changes, transcript, keywords
-        )
-
-        if scored["score"] >= min_score:
-            scored["vod_id"] = vod_id
-            scored["streamer"] = streamer
-            scored["clip_id"] = f"clip_{vod_id}_{int(start)}"
-            moments.append(scored)
-
-    # Sort by score descending
-    moments.sort(key=lambda x: x["score"], reverse=True)
-
-    # Merge overlapping moments (keep highest score)
-    merged = []
-    for m in moments:
-        overlap = False
-        for existing in merged:
-            if not (m["end_time"] <= existing["start_time"] or m["start_time"] >= existing["end_time"]):
-                overlap = True
-                break
-        if not overlap:
-            merged.append(m)
-
-    return merged[:10]  # Top 10
+    for w in candidates:
+        text = transcribe(path, w["start"], w["end"], model, tmp)
+        s = score(w["audio_pct"], w["visual_pct"], text)
+        moments.append({
+            "clip_id": f"clip_{vod_id}_{int(w['start'])}", "vod_id": vod_id, "streamer": streamer,
+            "start_time": w["start"], "end_time": round(w["end"]), "duration": round(w["end"] - w["start"]),
+            "transcript": text[:200], **s,
+        })
+    moments.sort(key=lambda m: m["score"], reverse=True)
+    return moments[: int(os.getenv("MAX_RESULTS", "10"))]
 
 
 def main():
     if len(sys.argv) < 3:
         print(json.dumps({"error": "Usage: analyze_vod.py <vod_id> <streamer>"}))
         sys.exit(1)
+    vod_id, streamer = sys.argv[1], sys.argv[2]
+    client_id = os.getenv("TWITCH_CLIENT_ID", "")
+    model = os.getenv("WHISPER_MODEL", "/models/ggml-base.en.bin")
+    if not os.path.exists(model):
+        log(f"WARNING: Whisper model not found at {model}; keyword scoring disabled.")
 
-    vod_id = sys.argv[1]
-    streamer = sys.argv[2]
+    limit = int(os.getenv("MAX_ANALYZE_SECONDS", "14400"))
+    try:
+        token = twitch_token(client_id)
+        meta = get_vod_metadata(vod_id, client_id, token) if token else {}
+    except requests.RequestException as e:
+        log(f"Twitch API error: {e}")
+        meta = {}
+    vod_len = parse_twitch_duration(meta.get("duration", "")) or limit
+    seconds = min(vod_len, limit)
 
-    # Get credentials from env
-    client_id = os.getenv("TWITCH_CLIENT_ID")
-    access_token = os.getenv("TWITCH_ACCESS_TOKEN")
-    model_path = os.getenv("WHISPER_MODEL", "/models/ggml-base.en.bin")
-
-    if not model_path or not os.path.exists(model_path):
-        print(
-            f"WARNING: Whisper model not found at {model_path}. Transcription will be skipped.",
-            file=sys.stderr,
-        )
-
-    if not client_id or not access_token:
-        print(json.dumps({"error": "Missing Twitch credentials"}))
-        sys.exit(1)
-
-    # Get VOD metadata for duration + viewer count
-    metadata = get_vod_metadata(vod_id, client_id, access_token)
-    duration_str = metadata.get("duration", "0h0m0s")
-    duration = parse_twitch_duration(duration_str)
-    if duration == 0:
-        duration = 7200  # 2 hours default fallback
-
-    segment_length = 30  # analysis window in seconds
-
-    peak_viewers = metadata.get("view_count", 0)
-
-    # Download only the first analysis window (avoids 300s timeout on long VODs)
-    # find_best_moments will analyze from this downloaded segment.
-    video_path = f"/temp/{vod_id}.mp4"
-    vod_url = f"https://twitch.tv/videos/{vod_id}"
-
-    first_window_end = min(segment_length, duration)
-
-    if not os.path.exists(video_path):
-        print(f"Downloading VOD {vod_id} (first {first_window_end}s)...", file=sys.stderr)
-        if not download_vod_segment(vod_url, 0, first_window_end, video_path):
-            print(json.dumps({"error": "Failed to download VOD segment"}))
+    os.makedirs("/temp", exist_ok=True)
+    path = f"/temp/{vod_id}_analysis.mp4"
+    tmp = f"/temp/{vod_id}_an"
+    if not os.path.exists(path):
+        log(f"Downloading VOD {vod_id} (first {seconds}s, 160p)...")
+        if not download_vod(f"https://www.twitch.tv/videos/{vod_id}", seconds, path):
+            print(json.dumps({"error": "Failed to download VOD"}))
             sys.exit(1)
-
-    # Analyze from the downloaded segment
-    moments = find_best_moments(
-        vod_id, streamer, video_path, first_window_end,
-        client_id, access_token, model_path,
-    )
-
-    # Output JSON for n8n
+    try:
+        moments = find_best_moments(vod_id, streamer, path, model, tmp)
+    finally:
+        if os.getenv("KEEP_VOD_FILE") != "1" and os.path.exists(path):
+            os.remove(path)
     print(json.dumps(moments))
 
 

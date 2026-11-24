@@ -7,10 +7,12 @@
 #   export DOMAIN=your-domain.com
 #   export CADDY_EMAIL=your-real-email@example.com
 #   export N8N_PASSWORD=<secure-password>
-#   bash /opt/tiktok-clips/deploy-droplet.sh
+#   bash /opt/tiktok-clips/TikTokBPlan/deploy-droplet.sh
 #
-# BEFORE running, copy project files to the droplet from your LOCAL machine:
-#   scp -r "D:\Tiktok Buisness plan\*" root@<droplet-ip>:/opt/tiktok-clips/
+# BEFORE running, get the project onto the droplet (either way):
+#   git clone https://github.com/MojowNChips/TikTokBPlan.git /opt/tiktok-clips/TikTokBPlan
+#   scp -r "D:\Tiktok Buisness plan\*" root@<droplet-ip>:/opt/tiktok-clips/TikTokBPlan/
+# Safe to re-run: an existing .env (your real secrets) is never overwritten.
 # ==============================================================================
 set -euo pipefail
 
@@ -81,7 +83,14 @@ fi
 
 # --- 4. Environment file -----------------------------------------------------
 echo "[3/8] Writing .env ..."
+if [ -f .env ]; then
+  echo "   .env already exists -> kept as-is (secrets preserved)."
+  grep -q '^DOMAIN=' .env || echo "DOMAIN=${DOMAIN}" >> .env
+else
 cat > .env <<EOF
+# Domain (used by docker-compose for N8N_HOST / WEBHOOK_URL)
+DOMAIN=${DOMAIN}
+
 # n8n
 N8N_PASSWORD=${N8N_PASSWORD}
 
@@ -124,12 +133,20 @@ WHISPER_MODEL=/models/ggml-base.en.bin
 # Streamers & Games
 STREAMER_LIST=streamer1,streamer2,streamer3
 GAME_LIST=Valorant,League of Legends,Counter-Strike 2
+
+# Pipeline tuning
+CLIP_WINDOW=30
+CLIP_SCORE_THRESHOLD=60
+MAX_CLIPS_PER_VOD=3
+# SELF_ONLY until your TikTok app passes audit, then PUBLIC_TO_EVERYONE
+TIKTOK_PRIVACY_LEVEL=SELF_ONLY
 EOF
+fi
 
 # --- 5. Whisper model --------------------------------------------------------
 echo "[4/8] Downloading Whisper model..."
 mkdir -p models
-wget -q -P models https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin || \
+[ -f models/ggml-base.en.bin ] || wget -q -P models https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin || \
   echo "WARNING: Whisper model download failed (check network)."
 
 # --- 6. Watermark ------------------------------------------------------------
@@ -164,27 +181,9 @@ sed -e "s|\${YOUR_DOMAIN}|$DOMAIN|g" \
     -e "s|\${CADDY_EMAIL}|$CADDY_EMAIL|g" \
     Caddyfile > Caddyfile.rendered
 
-# Fix: Remove header_down * which strips Content-Type headers
-# This was causing "MIME type error" for JS module files
-sed -i '/header_down/d' Caddyfile.rendered
-
-# Add transport http config and Content-Type preservation (using a temp file)
-# FIX: header_up Content-Type {upstream_content_type} is REQUIRED for JS module MIME types
-if ! grep -q "header_up Content-Type" Caddyfile.rendered; then
-    awk '/header_up X-Forwarded-Port {server_port}/{
-        print
-        print "            # EXPLICITLY preserve Content-Type from upstream - REQUIRED for JS modules"
-        print "            header_up Content-Type {upstream_content_type}"
-        print "            transport http {"
-        print "                read_buffer 4MB"
-        print "                write_buffer 4MB"
-        print "            }"
-        next
-    }1' Caddyfile.rendered > Caddyfile.rendered.tmp
-    mv Caddyfile.rendered.tmp Caddyfile.rendered
-fi
-
-cp Caddyfile.rendered Caddyfile
+# Write the rendered config into the file Caddy mounts
+# (truncate in place so the container's bind mount keeps pointing at it)
+cat Caddyfile.rendered > Caddyfile
 
 echo "[8/8] Starting containers..."
 if ! docker compose up -d; then
@@ -196,8 +195,8 @@ fi
 echo ""
 echo "========================================================"
 echo " DONE — Next steps:"
-echo " 1. Open https://$DOMAIN   -> n8n UI (admin / $N8N_PASSWORD)"
-echo " 2. Fill remaining secrets in /opt/tiktok-clips/.env"
+echo " 1. Open https://$DOMAIN   -> n8n UI (create the owner account on first visit)"
+echo " 2. Fill remaining secrets in $PROJECT_DIR/.env"
 echo " 3. Restart: docker compose restart n8n"
 echo " 4. Import 5 workflows from workflows/ into n8n"
 echo " 5. Activate workflows 01 -> 05 in order"

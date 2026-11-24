@@ -37,3 +37,7 @@ logs/
 .idea/
 *.swp
 *.swo
+# Deploy artefacts
+Caddyfile.rendered
+Caddyfile.bak.*
+_to_delete/

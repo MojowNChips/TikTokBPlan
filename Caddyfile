@@ -3,7 +3,7 @@
 # Do NOT commit rendered values; keep as template.
 #
 # IMPORTANT: Deploy requires DOMAIN and CADDY_EMAIL env vars to be set before running deploy-droplet.sh
-# If these are empty, the sed command produces malformed config that breaks Content-Type headers.
+# If these are empty, the rendered config is invalid and Caddy will not start.
 
 {
     email ${CADDY_EMAIL}
@@ -11,51 +11,44 @@
 
 ${YOUR_DOMAIN} {
 
-    # TikTok legal docs (required for Developer Platform review) — specific routes FIRST
-    handle_path /privacy {
+    # TikTok legal docs — rewrite to the real .html file served by docs
+    # (handle_path would strip the path and docs would serve index.html instead)
+    handle /privacy {
+        rewrite * /privacy.html
         reverse_proxy docs:80
     }
 
-    handle_path /terms {
+    handle /terms {
+        rewrite * /terms.html
         reverse_proxy docs:80
     }
 
-    handle_path /data-usage {
+    handle /data-usage {
+        rewrite * /data-usage.html
         reverse_proxy docs:80
     }
 
-    handle_path /app-description {
+    handle /app-description {
+        rewrite * /app-description.html
         reverse_proxy docs:80
     }
 
-    handle_path /logo.png {
+    handle /logo.png {
         reverse_proxy docs:80
     }
 
-    # n8n automation UI — catch-all LAST with explicit header preservation
-    handle / {
-        reverse_proxy n8n:5678 {
-            header_up Host {upstream_hostport}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-            header_up X-Forwarded-Port {server_port}
-            # EXPLICITLY preserve Content-Type from upstream - REQUIRED for JS modules
-            header_up Content-Type {upstream_content_type}
-            transport http {
-                read_buffer 4MB
-                write_buffer 4MB
-            }
-        }
+    handle /favicon.ico {
+        reverse_proxy docs:80
     }
 
-    # Health check
     handle /healthz {
         reverse_proxy n8n:5678
     }
 
-    # Favicon fallback
-    handle_path /favicon.ico {
-        reverse_proxy docs:80
+    # n8n — bare handle is the catch-all (every other path: /assets, /rest, /webhook...)
+    # `handle /` would match ONLY "/" and leave JS assets unanswered -> MIME errors.
+    handle {
+        # Caddy already sets X-Forwarded-For/-Proto/-Host; no header_up needed.
+        reverse_proxy n8n:5678
     }
 }
